@@ -1,0 +1,12 @@
+[Unit]
+Description=Multi-Casino Jackpot Ingestion
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=rod
+Group=rod
+WorkingDirectory=/home/rod/jackpot-ingest
+Environment=DATABASE_URL=postgres://rod@localhost:5432/postgres
+Environment=USER_AGENT=jackpot-ingest/1.0
+ExecStart=/home/rod/home_ai_stack/venv/bin/python3 scripts/run_ingest.py

@@ -1,0 +1,18 @@
+[Unit]
+Description=Home AI MCP Server (Memory & Knowledge Graph)
+After=network.target neo4j.service ollama.service
+Requires=neo4j.service
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/home/rod/home_ai_stack
+Environment="PYTHONPATH=/home/rod/home_ai_stack/src"
+Environment="NEO4J_PASSWORD=homeai2025"
+
+ExecStart=/home/rod/home_ai_stack/venv/bin/python3 -m src.mcp_server.server
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

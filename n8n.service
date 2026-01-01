@@ -1,0 +1,31 @@
+[Unit]
+Description=n8n - Workflow Automation
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/home/rod
+
+# n8n configuration
+Environment="N8N_HOST=0.0.0.0"
+Environment="N8N_PORT=5678"
+Environment="N8N_PROTOCOL=http"
+Environment="WEBHOOK_URL=http://192.168.1.176:5678/"
+Environment="N8N_LOG_LEVEL=info"
+Environment="N8N_SECURE_COOKIE=false"
+
+# Database (SQLite)
+Environment="DB_TYPE=sqlite"
+Environment="DB_SQLITE_DATABASE=/home/rod/n8n-data/database.sqlite"
+
+# Paths
+Environment="N8N_USER_FOLDER=/home/rod/n8n-data"
+
+ExecStart=/usr/local/bin/n8n
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

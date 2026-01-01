@@ -1,0 +1,44 @@
+[
+    {
+        "title": [
+            "🧠 Memory",
+            "How to Save"
+        ],
+        "content": "To save a new memory, just state it as a fact. The system automatically categorizes it.\n\nTry this:\n'Remember that the server IP is 192.168.1.211 and it runs the Home AI stack.'"
+    },
+    {
+        "title": [
+            "🔍 Recall",
+            "Ask Questions"
+        ],
+        "content": "You can ask natural language questions to retrieve information. The system searches vector embeddings and the knowledge graph.\n\nTry this:\n'What do you know about the server configuration?'"
+    },
+    {
+        "title": [
+            "📈 Stocks",
+            "Deep Analysis"
+        ],
+        "content": "I can analyze stock data using financial tools. Ask for fundamental data, market cap, or sector information.\n\nTry this:\n'Analyze AAPL stock and tell me its market cap, sector, and recent performance.'"
+    },
+    {
+        "title": [
+            "🕸️ Graph",
+            "Explore Entities"
+        ],
+        "content": "Our memory is structured as a Knowledge Graph (Neo4j). You can ask to see relationships or list entities.\n\nTry this:\n'List all entities related to the \"finance\" category in the knowledge graph.'"
+    },
+    {
+        "title": [
+            "🛠️ System",
+            "Check Status"
+        ],
+        "content": "You can verify the system status and view recent memories to ensure everything is working.\n\nTry this:\n'Check the memory system status and list the last 5 memories added.'"
+    },
+    {
+        "title": [
+            "⚡ Service",
+            "Manage Tools"
+        ],
+        "content": "I have access to various tools via the MCP server. You can ask me to list them to see what I can do.\n\nTry this:\n'List all available tools and explain what each one does.'"
+    }
+]

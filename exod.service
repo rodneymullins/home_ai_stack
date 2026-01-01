@@ -1,0 +1,14 @@
+[Unit]
+Description=Exo AI Cluster Node
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/home/rod/exo
+ExecStart=/home/rod/exo/.venv/bin/python3 /home/rod/exo/.venv/bin/exo --node-id thor --node-host 192.168.1.211 --node-port 5555 --chatgpt-api-port 8000 --inference-engine tinygrad
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

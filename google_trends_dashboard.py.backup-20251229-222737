@@ -1,0 +1,585 @@
+#!/usr/bin/env python3
+"""
+The Ultimate One Dashboard - Lord of the Rings Theme
+Reorganized with embedded widgets and real-time data
+"""
+
+from flask import Flask, render_template_string, jsonify
+from pytrends.request import TrendReq
+import pandas as pd
+from datetime import datetime
+import random
+import requests
+import feedparser
+from bs4 import BeautifulSoup
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import threading
+import time
+
+app = Flask(__name__)
+
+# PostgreSQL connection for casino jackpots
+DB_CONFIG = {'host': 'localhost', 'database': 'postgres', 'user': 'rod'}
+
+# Global cache for jackpots
+jackpot_cache = []
+jackpot_cache_time = None
+initial_scrape_done = False
+
+def get_db_connection():
+    try:
+        return psycopg2.connect(**DB_CONFIG)
+    except Exception as e:
+        print(f"DB connection error: {e}")
+        return None
+
+def init_jackpot_table():
+    try:
+        conn = get_db_connection()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS jackpots (
+                    id SERIAL PRIMARY KEY,
+                    location_id TEXT,
+                    machine_name TEXT,
+                    denomination TEXT,
+                    page_num INTEGER,
+                    scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_scraped_at ON jackpots(scraped_at DESC)")
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("✅ Jackpots table initialized")
+    except Exception as e:
+        print(f"Error initializing table: {e}")
+
+def scrape_jackpot_page(page_num):
+    try:
+        url = f"https://www.coushattacasinoresort.com/gaming/slot-jackpot-updates/page/{page_num}"
+        response = requests.get(url, timeout=15)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        jackpots = []
+        for link in soup.find_all('a', href=lambda x: x and 'res-slot-map.php' in x):
+            href = link.get('href', '')
+            text = link.get_text(strip=True)
+            if text:
+                location_id = text
+            else:
+                continue
+            if 'locSlotName=' in href:
+                machine_name = href.split('locSlotName=')[1].split('&')[0].replace('+', ' ')
+            else:
+                machine_name = 'Unknown'
+            if 'locDenom=' in href:
+                denomination = href.split('locDenom=')[1].split('&')[0]
+            else:
+                denomination = 'Unknown'
+            jackpots.append({'location_id': location_id, 'machine_name': machine_name, 'denomination': denomination, 'page_num': page_num})
+        return jackpots
+    except Exception as e:
+        print(f"Error scraping page {page_num}: {e}")
+        return []
+
+def scrape_all_pages_initial():
+    global initial_scrape_done
+    print("🎰 Starting initial scrape of all 62 pages...")
+    conn = get_db_connection()
+    if not conn:
+        print("❌ No DB connection, skipping initial scrape")
+        return
+    cur = conn.cursor()
+    total_jackpots = 0
+    for page in range(1, 63):
+        jackpots = scrape_jackpot_page(page)
+        for jp in jackpots:
+            try:
+                cur.execute("INSERT INTO jackpots (location_id, machine_name, denomination, page_num) VALUES (%s, %s, %s, %s)",
+                           (jp['location_id'], jp['machine_name'], jp['denomination'], jp['page_num']))
+                total_jackpots += 1
+            except:
+                pass
+        if page % 10 == 0:
+            print(f"  Scraped {page}/62 pages...")
+            conn.commit()
+        time.sleep(0.5)
+    conn.commit()
+    cur.close()
+    conn.close()
+    initial_scrape_done = True
+    print(f"✅ Initial scrape complete! Loaded {total_jackpots} jackpots")
+
+def get_jackpots():
+    global jackpot_cache, jackpot_cache_time
+    if jackpot_cache and jackpot_cache_time:
+        if (datetime.now() - jackpot_cache_time).seconds < 300:
+            return jackpot_cache
+    conn = get_db_connection()
+    if conn:
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("SELECT location_id, machine_name, denomination, scraped_at FROM jackpots ORDER BY scraped_at DESC LIMIT 50")
+            jackpots = cur.fetchall()
+            cur.close()
+            conn.close()
+            jackpot_cache = [dict(jp) for jp in jackpots]
+            jackpot_cache_time = datetime.now()
+            if jackpots and initial_scrape_done:
+                threading.Thread(target=refresh_page_one, daemon=True).start()
+            return jackpot_cache
+        except Exception as e:
+            print(f"Error fetching jackpots: {e}")
+    return [{'location_id': 'HD0104', 'machine_name': 'IGT MULTI-GAME', 'denomination': '$1.00', 'scraped_at': datetime.now()}]
+
+def refresh_page_one():
+    jackpots = scrape_jackpot_page(1)
+    if not jackpots:
+        return
+    conn = get_db_connection()
+    if not conn:
+        return
+    cur = conn.cursor()
+    for jp in jackpots:
+        try:
+            cur.execute("INSERT INTO jackpots (location_id, machine_name, denomination, page_num) VALUES (%s, %s, %s, %s)",
+                       (jp['location_id'], jp['machine_name'], jp['denomination'], jp['page_num']))
+        except:
+            pass
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("🔄 Refreshed page 1 jackpots")
+
+def format_time_ago(timestamp):
+    if not timestamp:
+        return "Recently"
+    try:
+        delta = datetime.now() - timestamp
+        minutes = int(delta.total_seconds() / 60)
+        if minutes < 1:
+            return "Just now"
+        elif minutes < 60:
+            return f"{minutes}m ago"
+        elif minutes < 1440:
+            hours = minutes // 60
+            return f"{hours}h ago"
+        else:
+            days = minutes // 1440
+            return f"{days}d ago"
+    except:
+        return "Recently"
+
+def get_trending_searches(geo='US'):
+    demo_data = [{'title': 'AI Breakthroughs 2025', 'traffic': 'HOT'}, {'title': 'Quantum Computing', 'traffic': 'HOT'}, {'title': 'Space Exploration', 'traffic': 'HOT'}, {'title': 'Climate Tech', 'traffic': 'HOT'}, {'title': 'Neural Interfaces', 'traffic': 'HOT'}]
+    try:
+        pytrends = TrendReq(hl='en-US', tz=360, timeout=(10, 25), retries=2)
+        trending = pytrends.trending_searches(pn=geo)
+        result = [{'title': item, 'traffic': 'HOT'} for item in trending[0].head(5).tolist()]
+        return result if result else demo_data
+    except Exception as e:
+        print(f"Using demo data for {geo}: {e}")
+        return demo_data
+
+def get_news():
+    try:
+        feeds = [('https://www.cnbc.com/id/100003114/device/rss/rss.html', 'CNBC'), ('https://feeds.reuters.com/reuters/businessNews', 'Reuters')]
+        news = []
+        for feed_url, source in feeds:
+            try:
+                feed = feedparser.parse(feed_url)
+                for entry in feed.entries[:5]:
+                    news.append({'title': entry.title, 'link': entry.link, 'source': source, 'published': entry.get('published', 'Recently')[:16]})
+            except:
+                pass
+        return news[:10] if news else [{'title': 'Markets Rally on Strong Economic Data', 'link': '#', 'source': 'Demo News', 'published': 'Today'}]
+    except Exception as e:
+        print(f"Error fetching news: {e}")
+        return [{'title': 'Markets Rally on Strong Economic Data', 'link': '#', 'source': 'Demo News', 'published': 'Today'}]
+
+def get_services():
+    return [
+        {'name': 'Homer', 'icon': '🏠', 'url': 'http://192.168.1.176'},
+        {'name': 'Jellyfin', 'icon': '🎬', 'url': 'http://192.168.1.176:8096'},
+        {'name': 'Nextcloud', 'icon': '☁️', 'url': 'http://192.168.1.176:8083'},
+        {'name': 'Jellyseerr', 'icon': '📺', 'url': 'http://192.168.1.176:5055'},
+        {'name': 'Sonarr', 'icon': '📡', 'url': 'http://192.168.1.176:8989'},
+        {'name': 'Radarr', 'icon': '🎥', 'url': 'http://192.168.1.176:7878'}
+    ]
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The One Dashboard • Middle-earth Finance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --gold: #d4af37; --bronze: #cd7f32; --dark-brown: #2c1810; --parchment: #f4e8d0; }
+        body { font-family: 'Crimson Text', serif; background: linear-gradient(135deg, #1a0f0a 0%, #2c1810 50%, #1a0f0a 100%); color: var(--parchment); min-height: 100vh; position: relative; padding-bottom: 60px; }
+        body::after { content: '💍'; position: fixed; font-size: 400px; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.03; pointer-events: none; filter: blur(5px); }
+        .container-fluid { padding: 20px; position: relative; z-index: 1; }
+        header { text-align: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.1)); border: 2px solid var(--gold); border-radius: 10px; box-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
+        h1 { font-family: 'Cinzel', serif; font-size: 2.5em; font-weight: 900; color: var(--gold); text-shadow: 0 0 20px rgba(212, 175, 55, 0.8); letter-spacing: 4px; margin-bottom: 10px; }
+        .subtitle { font-size: 1.1em; color: var(--bronze); font-style: italic; letter-spacing: 2px; }
+        .nav-tabs { border-bottom: 2px solid var(--gold); margin-bottom: 20px; }
+        .nav-tabs .nav-link { font-family: 'Cinzel', serif; color: var(--bronze); background: linear-gradient(135deg, rgba(44, 24, 16, 0.6), rgba(26, 15, 10, 0.6)); border: 2px solid var(--bronze); border-bottom: none; margin-right: 5px; padding: 10px 15px; font-weight: 700; letter-spacing: 1px; transition: all 0.3s; font-size: 0.85em; }
+        .nav-tabs .nav-link:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(205, 127, 50, 0.2)); color: var(--gold); border-color: var(--gold); }
+        .nav-tabs .nav-link.active { background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.3)); color: var(--gold); border-color: var(--gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
+        .scroll-card { background: linear-gradient(135deg, rgba(244, 232, 208, 0.15), rgba(212, 175, 55, 0.1)); backdrop-filter: blur(10px); border: 3px solid var(--gold); border-radius: 8px; padding: 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); margin-bottom: 20px; position: relative; }
+        .scroll-card::before { content: '⚔'; position: absolute; top: 10px; left: 10px; font-size: 1.5em; color: var(--gold); opacity: 0.3; }
+        .card-title { font-family: 'Cinzel', serif; font-size: 1.3em; font-weight: 700; color: var(--gold); margin-bottom: 15px; text-align: center; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); border-bottom: 2px solid var(--bronze); padding-bottom: 10px; }
+        .chart-container { position: relative; height: 200px; margin-bottom: 15px; }
+        .data-item { padding: 8px 12px; margin: 6px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05)); border-left: 3px solid var(--gold); display: flex; align-items: center; gap: 12px; transition: all 0.3s; cursor: pointer; text-decoration: none; color: inherit; }
+        .data-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.2)); transform: translateX(8px); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
+        .rank-badge { min-width: 30px; height: 30px; background: linear-gradient(135deg, var(--gold), var(--bronze)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 0.9em; font-weight: 900; color: var(--dark-brown); box-shadow: 0 0 15px rgba(212, 175, 55, 0.6); }
+        .trend-text { flex: 1; font-size: 0.95em; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .news-item { padding: 15px; margin: 10px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), rgba(205, 127, 50, 0.03)); border-left: 3px solid var(--gold); transition: all 0.3s; }
+        .news-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), rgba(205, 127, 50, 0.08)); transform: translateX(5px); }
+        .news-title { font-size: 1.1em; font-weight: 600; color: var(--parchment); margin-bottom: 5px; }
+        .news-source { font-size: 0.85em; color: var(--bronze); }
+        .service-link { display: block; padding: 20px; margin: 10px 0; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05)); border: 2px solid var(--gold); border-radius: 8px; text-decoration: none; color: var(--parchment); text-align: center; transition: all 0.3s; }
+        .service-link:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.2)); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4); }
+        .service-name { font-family: 'Cinzel', serif; font-size: 1.4em; font-weight: 700; color: var(--gold); margin-bottom: 5px; }
+        .service-url { font-size: 0.9em; color: rgba(244, 232, 208, 0.7); }
+        .jackpot-item { padding: 12px; margin: 8px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), rgba(205, 127, 50, 0.06)); border-left: 4px solid var(--gold); border-radius: 4px; transition: all 0.3s; }
+        .jackpot-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.25), rgba(205, 127, 50, 0.15)); transform: translateX(5px); }
+        .jackpot-machine { font-size: 1.05em; font-weight: 600; color: var(--parchment); margin-bottom: 5px; }
+        .jackpot-details { font-size: 0.9em; color: rgba(244, 232, 208, 0.8); display: flex; gap: 15px; }
+        .widget-container { background: rgba(244, 232, 208, 0.05); border: 2px solid var(--gold); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .widget-container iframe { border: none; border-radius: 4px; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; height: 45px; background: linear-gradient(135deg, rgba(44, 24, 16, 0.95), rgba(26, 15, 10, 0.95)); backdrop-filter: blur(10px); border-top: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; gap: 30px; font-family: 'Cinzel', serif; font-size: 0.85em; color: var(--gold); z-index: 100; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <header>
+            <h1>⚔ THE ONE DASHBOARD ⚔</h1>
+            <div class="subtitle">Finance of Middle-earth</div>
+        </header>
+        
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#trends">📜 Chronicles</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#crypto">⛏️ Mithril</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#treasury">💰 Treasures</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#markets">🏛️ Markets</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#news">📰 Tidings</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#links">🗺️ Paths</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#jackpots">🎰 Treasure Hunter</button></li>
+        </ul>
+        
+        <div class="tab-content">
+            <!-- Chronicles Tab (Google Trends) -->
+            <div class="tab-pane fade show active" id="trends">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="scroll-card">
+                            <h2 class="card-title">🏔 Trending in the West</h2>
+                            <div class="chart-container"><canvas id="usChart"></canvas></div>
+                            {% for item in trending_us %}
+                            <a href="https://www.google.com/search?q={{ item.title | urlencode }}" target="_blank" class="data-item">
+                                <div class="rank-badge">{{ loop.index }}</div>
+                                <div class="trend-text">{{ item.title }}</div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="scroll-card">
+                            <h2 class="card-title">🌍 Across All Realms</h2>
+                            <div class="chart-container"><canvas id="globalChart"></canvas></div>
+                            {% for item in trending_global %}
+                            <a href="https://www.google.com/search?q={{ item.title | urlencode }}" target="_blank" class="data-item">
+                                <div class="rank-badge">{{ loop.index }}</div>
+                                <div class="trend-text">{{ item.title }}</div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mithril Tab (Crypto) -->
+            <div class="tab-pane fade" id="crypto">
+                <div class="scroll-card">
+                    <h2 class="card-title">⛏️ Mithril: Bitcoin & Cryptocurrency</h2>
+                    <div class="widget-container">
+                        <!-- TradingView Widget BEGIN -->
+                        <div class="tradingview-widget-container">
+                          <div class="tradingview-widget-container__widget"></div>
+                          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+                          {
+                          "symbols": [
+                            ["COINBASE:BTCUSD|1D"],
+                            ["COINBASE:ETHUSD|1D"],
+                            ["COINBASE:SOLUSD|1D"],
+                            ["COINBASE:ADAUSD|1D"]
+                          ],
+                          "chartOnly": false,
+                          "width": "100%",
+                          "height": "600",
+                          "locale": "en",
+                          "colorTheme": "dark",
+                          "autosize": true,
+                          "showVolume": false,
+                          "showMA": false,
+                          "hideDateRanges": false,
+                          "hideMarketStatus": false,
+                          "hideSymbolLogo": false,
+                          "scalePosition": "right",
+                          "scaleMode": "Normal",
+                          "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+                          "fontSize": "10",
+                          "noTimeScale": false,
+                          "valuesTracking": "1",
+                          "changeMode": "price-and-percent",
+                          "chartType": "area",
+                          "maLineColor": "#2962FF",
+                          "maLineWidth": 1,
+                          "maLength": 9,
+                          "backgroundColor": "rgba(19, 23, 34, 0)",
+                          "lineWidth": 2,
+                          "lineType": 0,
+                          "dateRanges": [
+                            "1d|1",
+                            "1m|30",
+                            "3m|60",
+                            "12m|1D",
+                            "60m|1W",
+                            "all|1M"
+                          ]
+                          }
+                          </script>
+                        </div>
+                        <!-- TradingView Widget END -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Treasures Tab (Fed Treasury) -->
+            <div class="tab-pane fade" id="treasury">
+                <div class="scroll-card">
+                    <h2 class="card-title">💰 Treasures: Fed Treasury Data</h2>
+                    <div class="widget-container">
+                        <!-- TradingView Widget BEGIN -->
+                        <div class="tradingview-widget-container">
+                          <div class="tradingview-widget-container__widget"></div>
+                          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+                          {
+                          "width": "100%",
+                          "height": "600",
+                          "symbolsGroups": [
+                            {
+                              "name": "Treasury Bills",
+                              "symbols": [
+                                {"name": "TVC:US01MY", "displayName": "1 Month"},
+                                {"name": "TVC:US03MY", "displayName": "3 Month"},
+                                {"name": "TVC:US06MY", "displayName": "6 Month"},
+                                {"name": "TVC:US01Y", "displayName": "1 Year"}
+                              ]
+                            },
+                            {
+                              "name": "Treasury Notes",
+                              "symbols": [
+                                {"name": "TVC:US02Y", "displayName": "2 Year"},
+                                {"name": "TVC:US05Y", "displayName": "5 Year"},
+                                {"name": "TVC:US10Y", "displayName": "10 Year"}
+                              ]
+                            },
+                            {
+                              "name": "Treasury Bonds",
+                              "symbols": [
+                                {"name": "TVC:US20Y", "displayName": "20 Year"},
+                                {"name": "TVC:US30Y", "displayName": "30 Year"}
+                              ]
+                            }
+                          ],
+                          "showSymbolLogo": true,
+                          "isTransparent": true,
+                          "colorTheme": "dark",
+                          "locale": "en",
+                          "backgroundColor": "rgba(19, 23, 34, 0)"
+                          }
+                          </script>
+                        </div>
+                        <!-- TradingView Widget END -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Markets Tab (Stocks & Economic Indicators) -->
+            <div class="tab-pane fade" id="markets">
+                <div class="scroll-card">
+                    <h2 class="card-title">🏛️ Markets: NASDAQ & Economic Indicators</h2>
+                    <div class="widget-container">
+                        <!-- TradingView Widget BEGIN -->
+                        <div class="tradingview-widget-container">
+                          <div class="tradingview-widget-container__widget"></div>
+                          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+                          {
+                          "colorTheme": "dark",
+                          "dateRange": "12M",
+                          "showChart": true,
+                          "locale": "en",
+                          "width": "100%",
+                          "height": "600",
+                          "largeChartUrl": "",
+                          "isTransparent": true,
+                          "showSymbolLogo": true,
+                          "showFloatingTooltip": false,
+                          "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                          "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                          "gridLineColor": "rgba(240, 243, 250, 0)",
+                          "scaleFontColor": "rgba(106, 109, 120, 1)",
+                          "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                          "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                          "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                          "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                          "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                          "tabs": [
+                            {
+                              "title": "Indices",
+                              "symbols": [
+                                {"s": "NASDAQ:NDX", "d": "NASDAQ 100"},
+                                {"s": "SP:SPX", "d": "S&P 500"},
+                                {"s": "DJIA:DJI", "d": "Dow Jones"}
+                              ],
+                              "originalTitle": "Indices"
+                            },
+                            {
+                              "title": "Economic",
+                              "symbols": [
+                                {"s": "ECONOMICS:USIRYY", "d": "Inflation Rate"},
+                                {"s": "ECONOMICS:USUNR", "d": "Unemployment"},
+                                {"s": "ECONOMICS:USGDPQQ", "d": "GDP Growth"},
+                                {"s": "FRED:FEDFUNDS", "d": "Fed Funds Rate"}
+                              ],
+                              "originalTitle": "Economic"
+                            }
+                          ]
+                          }
+                          </script>
+                        </div>
+                        <!-- TradingView Widget END -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- News Tab -->
+            <div class="tab-pane fade" id="news">
+                <div class="scroll-card">
+                    <h2 class="card-title">📰 Tidings from Afar</h2>
+                    {% for article in news_data %}
+                    <a href="{{ article.link }}" target="_blank" class="news-item" style="display: block; text-decoration: none; color: inherit;">
+                        <div class="news-title">{{ article.title }}</div>
+                        <div class="news-source">{{ article.source }} • {{ article.published }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Links Tab -->
+            <div class="tab-pane fade" id="links">
+                <div class="row">
+                    {% for service in services %}
+                    <div class="col-md-6 col-lg-4">
+                        <a href="{{ service.url }}" target="_blank" class="service-link">
+                            <div class="service-name">{{ service.icon }} {{ service.name }}</div>
+                            <div class="service-url">{{ service.url }}</div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Casino Jackpots Tab -->
+            <div class="tab-pane fade" id="jackpots">
+                <div class="scroll-card">
+                    <h2 class="card-title">🎰 Treasure Hunter</h2>
+                    <p style="text-align: center; color: rgba(244, 232, 208, 0.7); margin-bottom: 20px;">
+                        Recent Slot Jackpots Over $1200 • Coushatta Casino Resort
+                    </p>
+                    {% for jp in jackpots_data %}
+                    <div class="jackpot-item">
+                        <div class="jackpot-machine">🎰 {{ jp.machine_name }}</div>
+                        <div class="jackpot-details">
+                            <span>📍 {{ jp.location_id }}</span>
+                            <span>💵 {{ jp.denomination }}</span>
+                            <span>⏰ {{ jp.time_ago }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div><span>⚔</span> <span>SYSTEM ONLINE</span></div>
+        <div><span>Last Updated: {{ update_time }}</span></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const chartConfig = { type: 'bar', options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(212, 175, 55, 0.1)' }, ticks: { color: '#d4af37' } }, x: { grid: { display: false }, ticks: { color: '#d4af37' } } } } };
+        new Chart(document.getElementById('usChart'), { ...chartConfig, data: { labels: {{ us_labels | tojson }}, datasets: [{ data: {{ us_values | tojson }}, backgroundColor: 'rgba(212, 175, 55, 0.6)', borderColor: '#d4af37', borderWidth: 2 }] } });
+        new Chart(document.getElementById('globalChart'), { ...chartConfig, data: { labels: {{ global_labels | tojson }}, datasets: [{ data: {{ global_values | tojson }}, backgroundColor: 'rgba(205, 127, 50, 0.6)', borderColor: '#cd7f32', borderWidth: 2 }] } });
+        setTimeout(() => location.reload(), 300000);
+        let timeLeft = 300;
+        setInterval(() => { timeLeft--; if (timeLeft <= 0) timeLeft = 300; const m = Math.floor(timeLeft / 60), s = timeLeft % 60; document.title = `⚔ The One Dashboard (${m}:${s.toString().padStart(2, '0')})`; }, 1000);
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    trending_us = get_trending_searches('united_states')
+    trending_global = get_trending_searches('worldwide')
+    news_data = get_news()
+    services = get_services()
+    
+    jackpots_raw = get_jackpots()
+    jackpots_data = []
+    for jp in jackpots_raw[:50]:
+        jackpots_data.append({
+            'location_id': jp.get('location_id', 'Unknown'),
+            'machine_name': jp.get('machine_name', 'Unknown')[:50],
+            'denomination': jp.get('denomination', 'Unknown'),
+            'time_ago': format_time_ago(jp.get('scraped_at'))
+        })
+    
+    us_labels = [item['title'][:15] + '...' if len(item['title']) > 15 else item['title'] for item in trending_us]
+    us_values = [random.randint(70, 100) for _ in trending_us]
+    global_labels = [item['title'][:15] + '...' if len(item['title']) > 15 else item['title'] for item in trending_global]
+    global_values = [random.randint(70, 100) for _ in trending_global]
+    update_time = datetime.now().strftime('%H:%M:%S')
+    
+    return render_template_string(HTML_TEMPLATE, trending_us=trending_us, trending_global=trending_global,
+                                 news_data=news_data, services=services, jackpots_data=jackpots_data,
+                                 us_labels=us_labels, us_values=us_values, global_labels=global_labels,
+                                 global_values=global_values, update_time=update_time)
+
+@app.route('/api/jackpots')
+def api_jackpots():
+    return jsonify(get_jackpots())
+
+if __name__ == '__main__':
+    print("🧙 INITIALIZING THE ONE DASHBOARD...")
+    print("⛏️ Mithril: Bitcoin & Crypto (TradingView)")
+    print("💰 Treasures: Fed Treasury (Bills, Bonds, Notes)")
+    print("🏛️ Markets: NASDAQ & Economic Indicators")
+    print("🎰 Treasure Hunter: Casino Jackpots")
+    print("📊 Access at: http://192.168.1.211:8004")
+    
+    init_jackpot_table()
+    if not initial_scrape_done:
+        threading.Thread(target=scrape_all_pages_initial, daemon=True).start()
+    
+    app.run(host='0.0.0.0', port=8004, debug=False)

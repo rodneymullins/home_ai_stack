@@ -1,0 +1,15 @@
+[Unit]
+Description=Coushatta Casino Jackpot Scraper
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=rod
+WorkingDirectory=/home/rod/home_ai_stack
+ExecStart=/home/rod/home_ai_stack/venv/bin/python3 scrapers/coushatta_scraper.py
+StandardOutput=journal
+StandardError=journal
+
+# Restart on failure (if scrape fails)
+Restart=on-failure
+RestartSec=60s

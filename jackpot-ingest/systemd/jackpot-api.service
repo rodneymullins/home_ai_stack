@@ -1,0 +1,17 @@
+[Unit]
+Description=Multi-Casino Jackpot API
+After=network.target postgresql.service
+
+[Service]
+User=rod
+Group=rod
+WorkingDirectory=/home/rod/jackpot-ingest
+Environment=DATABASE_URL=postgres://rod@localhost:5432/postgres
+Environment=USER_AGENT=jackpot-ingest/1.0
+Environment=PORT=8089
+ExecStart=/home/rod/home_ai_stack/venv/bin/gunicorn -w 2 -b 0.0.0.0:8089 'app:create_app()'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

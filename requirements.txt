@@ -1,0 +1,19 @@
+langchain
+langgraph
+langchain-community
+langchain-ollama
+pymilvus[model]  # Milvus Lite with model support
+# open-webui - Not compatible with Python 3.13, use separately if needed
+fastapi          # For the middleware API
+uvicorn          # ASGI server
+python-multipart # For file uploads
+requests         # For general API calls
+langgraph-checkpoint-postgres # Keep for LangGraph state if needed
+psycopg[binary]  # Postgres driver
+mcp              # Model Context Protocol SDK
+mem0ai           # The Memory Layer (Vector + Graph)
+langchain-neo4j  # Neo4j integration
+rank-bm25        # Required by langchain-neo4j
+ollama           # Official Python client
+psycopg2-binary  # Common Postgres adapter
+youtube-transcript-api  # YouTube transcript extraction

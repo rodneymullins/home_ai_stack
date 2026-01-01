@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ details.summary.machine_name }} - Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f1115;
+            --card-bg: #1a1d23;
+            --text-main: #e0e0e0;
+            --gold: #d4af37;
+            --bronze: #cd7f32;
+            --accent: #00ff9f;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Lato', sans-serif;
+            padding: 20px;
+        }
+        .metric-card {
+            background: linear-gradient(145deg, #1a1d23, #22262e);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .metric-value { font-family: 'Cinzel', serif; font-size: 1.5em; color: var(--gold); }
+        .metric-label { font-size: 0.8em; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+        h1, h2, h3 { font-family: 'Cinzel', serif; color: var(--gold); }
+        .table-dark { background-color: var(--card-bg); --bs-table-bg: var(--card-bg); border-color: rgba(255,255,255,0.1); }
+        .back-btn { text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px; transition: 0.2s; }
+        .back-btn:hover { color: var(--gold); transform: translateX(-5px); }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+
+        <div style="border-bottom: 2px solid var(--gold); padding-bottom: 15px; margin-bottom: 25px;">
+            <h1 style="margin-bottom: 5px;">{{ machine_name }}</h1>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; color: rgba(255,255,255,0.7); font-size: 0.9em;">
+                {% if details.summary.manufacturer %}
+                <span>🏭 <strong style="color: var(--gold);">{{ details.summary.manufacturer }}</strong></span>
+                {% endif %}
+                <span>📍 Zone: <strong style="color: var(--accent);">{{ details.summary.location_id }}</strong></span>
+                <span>💵 Denom: <strong style="color: var(--accent);">{{ details.summary.denomination }}</strong></span>
+                {% if details.summary.volatility and details.summary.volatility != 'Unknown' %}
+                <span>⚡ Volatility: <strong style="color: {% if 'High' in details.summary.volatility|string %}#ff6b6b{% elif 'Low' in details.summary.volatility|string %}#51cf66{% else %}#ffd43b{% endif %};">{{ details.summary.volatility }}</strong></span>
+                {% endif %}
+                <span>🔥 Heat: <strong style="color: {% if 'HOT' in details.heat_rating %}#ff6b6b{% elif 'COLD' in details.heat_rating %}#4dabf7{% else %}#ffd43b{% endif %};">{{ details.heat_rating }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Machine Photo -->
+        {% if details.summary.photo_url %}
+        <div style="text-align: center; margin: 20px 0;">
+            <img src="{{ details.summary.photo_url }}" alt="{{ machine_name }}" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);" />
+        </div>
+        {% endif %}
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value">${{ "{:,.0f}".format(details.summary.avg_payout) }}</div>
+                    <div class="metric-label">Avg Win</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value">{{ details.pacing }}</div>
+                    <div class="metric-label">Avg Wait (Pacing)</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value">{{ "{:,}".format(details.summary.total_hits) }}</div>
+                    <div class="metric-label">Total Hits</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value">${{ "{:,.0f}".format(details.summary.max_payout) }}</div>
+                    <div class="metric-label">Max Win</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h3 style="font-size: 1.2em; border-bottom: 1px solid var(--bronze); padding-bottom: 8px; margin-bottom: 15px;">⏰ Best Times (Hourly)</h3>
+                {% if details.best_hours %}
+                <div class="list-group">
+                    {% for hour in details.best_hours %}
+                    <div class="list-group-item" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ccc; display: flex; justify-content: space-between;">
+                        <span>{{ hour.time }}</span>
+                        <span><strong style="color: var(--gold);">{{ hour.hits }} hits</strong> <small>(${{ "{:,.0f}".format(hour.avg) }} avg)</small></span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #666;">Not enough data yet.</p>
+                {% endif %}
+
+                <h3 style="font-size: 1.2em; border-bottom: 1px solid var(--bronze); padding-bottom: 8px; margin: 25px 0 15px 0;">📊 Jackpot Range Analysis</h3>
+                {% for dist in details.distribution %}
+                <div style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 2px;">
+                        <span style="color: rgba(255,255,255,0.9);">{{ dist.label }}</span>
+                        <span style="color: var(--accent); font-weight: bold;">{{ dist.count }} hit{% if dist.count != 1 %}s{% endif %}</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, var(--gold), var(--bronze)); width: {{ (dist.count / details.summary.total_hits * 100)|int }}%; height: 100%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6">
+                <h3 style="font-size: 1.2em; border-bottom: 1px solid var(--bronze); padding-bottom: 8px; margin-bottom: 15px;">📜 Recent Hit History</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-dark table-sm" style="font-size: 0.9em;">
+                        <thead>
+                            <tr>
+                                <th style="color: var(--bronze);">Time</th>
+                                <th style="color: var(--bronze); text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hit in details.history %}
+                            <tr>
+                                <td>{{ hit.hit_timestamp.strftime('%m/%d %I:%M %p') }}</td>
+                                <td style="text-align: right; color: var(--accent);">${{ "{:,.2f}".format(hit.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
+"""
+return render_template_string(MACHINE_TEMPLATE, machine_name=machine_name, details=details, styles=SHARED_STYLES)

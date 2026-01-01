@@ -1,0 +1,15 @@
+[Unit]
+Description=Google Trends Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/home/rod/home_ai_stack
+Environment="PATH=/home/rod/home_ai_stack/venv/bin"
+ExecStart=/home/rod/home_ai_stack/venv/bin/python3 google_trends_dashboard.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

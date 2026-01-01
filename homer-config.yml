@@ -1,0 +1,149 @@
+# Homer Dashboard Configuration
+# Documentation: https://github.com/bastienwirtz/homer
+
+title: "Heimdall Services"
+subtitle: "Home Lab Dashboard"
+logo: "assets/logo.png"
+# icon: "fas fa-skull-crossbones"
+
+header: true
+footer: false
+
+columns: "3"
+
+theme: default
+colors:
+  light:
+    highlight-primary: "#3367d6"
+    highlight-secondary: "#4285f4"
+    highlight-hover: "#5a95f5"
+    background: "#f5f5f5"
+    card-background: "#ffffff"
+    text: "#363636"
+    text-header: "#ffffff"
+    text-title: "#303030"
+    text-subtitle: "#424242"
+    card-shadow: rgba(0, 0, 0, 0.1)
+    link-hover: "#363636"
+  dark:
+    highlight-primary: "#3367d6"
+    highlight-secondary: "#4285f4"
+    highlight-hover: "#5a95f5"
+    background: "#131313"
+    card-background: "#2b2b2b"
+    text: "#eaeaea"
+    text-header: "#ffffff"
+    text-title: "#fafafa"
+    text-subtitle: "#f5f5f5"
+    card-shadow: rgba(0, 0, 0, 0.4)
+    link-hover: "#ffdd57"
+
+services:
+  - name: "Network"
+    icon: "fas fa-network-wired"
+    items:
+      - name: "Pi-hole"
+        logo: "https://wp-cdn.pi-hole.net/wp-content/uploads/2016/12/Vortex-R.png"
+        subtitle: "DNS Ad Blocker"
+        tag: "dns"
+        url: "http://192.168.1.176:8081/admin/"
+        target: "_blank"
+        
+      - name: "Unbound"
+        icon: "fas fa-shield-alt"
+        subtitle: "Recursive DNS"
+        tag: "dns"
+        
+  - name: "Tools & Automation"
+    icon: "fas fa-tools"
+    items:
+      - name: "n8n"
+        logo: "https://n8n.io/favicon.ico"
+        subtitle: "Workflow Automation"
+        tag: "automation"
+        url: "http://192.168.1.176:5678"
+        target: "_blank"
+        
+      - name: "SearXNG"
+        icon: "fas fa-search"
+        subtitle: "Private Search"
+        tag: "search"
+        url: "http://192.168.1.176:8080"
+        target: "_blank"
+        
+
+
+  - name: "Monitoring"
+    icon: "fas fa-chart-line"
+    items:
+      - name: "Uptime Kuma"
+        logo: "https://uptime.kuma.pet/img/icon.svg"
+        subtitle: "Service Monitoring"
+        tag: "monitoring"
+        url: "http://192.168.1.176:3001"
+        target: "_blank"
+
+      - name: "Heimdall Netdata"
+        logo: "https://www.netdata.cloud/img/netdata-logo.svg"
+        subtitle: "Heimdall System Metrics"
+        tag: "monitoring"
+        url: "http://192.168.1.176:19999"
+        target: "_blank"
+        
+      - name: "Thor Netdata"
+        logo: "https://www.netdata.cloud/img/netdata-logo.svg"
+        subtitle: "Thor System Metrics"
+        tag: "monitoring"
+        url: "http://192.168.1.211:19999"
+        target: "_blank"
+
+  - name: "Thor Server"
+    icon: "fas fa-server"
+    items:
+      - name: "Neo4j Browser"
+        logo: "https://dist.neo4j.com/wp-content/uploads/20210423062553/neo4j-social-share-21.png"
+        subtitle: "Graph Database UI"
+        tag: "database"
+        url: "http://192.168.1.211:7474"
+        target: "_blank"
+
+      - name: "AI Memory (Mem0)"
+        icon: "fas fa-brain"
+        subtitle: "Vector + Graph Memory"
+        tag: "ai"
+        url: "http://192.168.1.211:8001"
+        target: "_blank"
+
+  - name: "Artificial Intelligence"
+    icon: "fas fa-robot"
+    items:
+      - name: "Open Web UI"
+        logo: "https://docs.openwebui.com/favicon.png"
+        subtitle: "Chat Interface"
+        tag: "ai"
+        url: "http://192.168.1.211:3000"
+        target: "_blank"
+
+      - name: "Exo UI"
+        logo: "https://github.com/exo-explore/exo/raw/main/assets/logo.png"
+        subtitle: "TinyChat Interface"
+        tag: "ai"
+        url: "http://192.168.1.211:8000"
+        target: "_blank"
+
+      - name: "Ollama API"
+        logo: "https://ollama.com/public/ollama.png"
+        subtitle: "LLM Inference API"
+        tag: "ai"
+        url: "http://192.168.1.211:11434"
+        target: "_blank"
+
+  - name: "Smart Home"
+    icon: "fas fa-home"
+    items:
+      - name: "Home Assistant"
+        logo: "https://raw.githubusercontent.com/home-assistant/assets/master/logo/logo.png"
+        subtitle: "Home Control"
+        tag: "smart-home"
+        url: "http://192.168.1.176:8123"
+        target: "_blank"
