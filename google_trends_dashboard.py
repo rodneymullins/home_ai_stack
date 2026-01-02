@@ -7,7 +7,7 @@ Reorganized with embedded widgets and real-time data
 from flask import Flask, render_template_string, jsonify
 from pytrends.request import TrendReq
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import requests
 import feedparser
@@ -18,6 +18,7 @@ import threading
 import time
 import sys
 import os
+import subprocess
 
 # Import analytics engine
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -865,13 +866,381 @@ def get_news():
 
 def get_services():
     return [
-        {'name': 'Homer', 'icon': '🏠', 'url': 'http://192.168.1.176'},
+        # Media Server
         {'name': 'Jellyfin', 'icon': '🎬', 'url': 'http://192.168.1.176:8096'},
-        {'name': 'Nextcloud', 'icon': '☁️', 'url': 'http://192.168.1.176:8083'},
         {'name': 'Jellyseerr', 'icon': '📺', 'url': 'http://192.168.1.176:5055'},
+        {'name': 'qBittorrent', 'icon': '⬇️', 'url': 'http://192.168.1.176:8082'},
+        
+        # Media Management
         {'name': 'Sonarr', 'icon': '📡', 'url': 'http://192.168.1.176:8989'},
-        {'name': 'Radarr', 'icon': '🎥', 'url': 'http://192.168.1.176:7878'}
+        {'name': 'Radarr', 'icon': '🎥', 'url': 'http://192.168.1.176:7878'},
+        {'name': 'Prowlarr', 'icon': '🔍', 'url': 'http://192.168.1.176:9696'},
+        
+        # Artificial Intelligence
+        {'name': 'Open Web UI', 'icon': '🤖', 'url': 'http://192.168.1.18:8080'},
+        {'name': 'Exo Cluster', 'icon': '🧠', 'url': 'http://192.168.1.211:8000'},
+        {'name': 'Ollama API', 'icon': '🦙', 'url': 'http://192.168.1.211:11434'},
+        
+        # Network & DNS
+        {'name': 'Pi-hole', 'icon': '🛡️', 'url': 'http://192.168.1.176:8081/admin/'},
+        {'name': 'SearXNG', 'icon': '🔎', 'url': 'http://192.168.1.176:8080'},
+        
+        # Automation & Tools
+        {'name': 'n8n', 'icon': '⚙️', 'url': 'http://192.168.1.176:5678'},
+        {'name': 'Home Assistant', 'icon': '🏠', 'url': 'http://192.168.1.176:8123'},
+        {'name': 'Uptime Kuma', 'icon': '📊', 'url': 'http://192.168.1.176:3001'},
+        
+        # System Monitoring
+        {'name': 'Legolas Netdata', 'icon': '📈', 'url': 'http://192.168.1.176:19999'},
+        {'name': 'Gandalf Netdata', 'icon': '📈', 'url': 'http://192.168.1.211:19999'},
+        {'name': 'Neo4j Browser', 'icon': '🔗', 'url': 'http://192.168.1.211:7474'},
+        
+        # Dashboards
+        {'name': 'Homer', 'icon': '🏛️', 'url': 'http://192.168.1.176'},
+        {'name': 'Nextcloud', 'icon': '☁️', 'url': 'http://192.168.1.176:8083'}
     ]
+
+def get_database_activity():
+    """Get recent database activity: jackpots, updates, scraper runs, and DB metrics."""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        activities = []
+        
+        # Database Size & Stats
+        try:
+            cur.execute("""
+                SELECT pg_size_pretty(pg_database_size(current_database())) as db_size,
+                       (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
+                       (SELECT sum(tup_inserted) FROM pg_stat_database WHERE datname = current_database()) as total_inserts,
+                       (SELECT sum(tup_fetched) FROM pg_stat_database WHERE datname = current_database()) as total_reads
+            """)
+            stats = cur.fetchone()
+            if stats:
+                activities.append({
+                    'type': 'db_stats',
+                    'icon': '📊',
+                    'title': 'Database Metrics',
+                    'detail': f"Size: {stats['db_size']} • {stats['active_connections']} active connections",
+                    'timestamp': datetime.now(),
+                    'category': 'database'
+                })
+                if stats['total_inserts']:
+                    activities.append({
+                        'type': 'db_io',
+                        'icon': '📈',
+                        'title': 'Database I/O Stats',
+                        'detail': f"{stats['total_inserts']:,} writes • {stats['total_reads']:,} reads (lifetime)",
+                        'timestamp': datetime.now() - timedelta(minutes=5),
+                        'category': 'database'
+                    })
+        except Exception as e:
+            print(f"Error getting DB stats: {e}")
+        
+        # Recent jackpots (last 6 hours)
+        cur.execute("""
+            SELECT machine_name, amount, hit_timestamp, location_id
+            FROM jackpots
+            WHERE hit_timestamp > NOW() - INTERVAL '6 hours'
+            ORDER BY hit_timestamp DESC
+            LIMIT 8
+        """)
+        for row in cur.fetchall():
+            activities.append({
+                'type': 'jackpot',
+                'icon': '🎰',
+                'title': f"New Jackpot: {row['machine_name'][:30]}",
+                'detail': f"${row['amount']:,.0f} at {row['location_id']}",
+                'timestamp': row['hit_timestamp'],
+                'category': 'database'
+            })
+        
+        # Table row counts
+        try:
+            cur.execute("""
+                SELECT 
+                    (SELECT COUNT(*) FROM jackpots) as jackpot_count,
+                    (SELECT COUNT(*) FROM slot_machines) as machine_count
+            """)
+            counts = cur.fetchone()
+            if counts:
+                activities.append({
+                    'type': 'table_stats',
+                    'icon': '🗄️',
+                    'title': 'Table Statistics',
+                    'detail': f"{counts['jackpot_count']:,} jackpots • {counts['machine_count']:,} machines",
+                    'timestamp': datetime.now() - timedelta(minutes=10),
+                    'category': 'database'
+                })
+        except Exception as e:
+            print(f"Error getting table counts: {e}")
+            
+        cur.close()
+        conn.close()
+        return sorted(activities, key=lambda x: x['timestamp'], reverse=True)[:15]
+    except Exception as e:
+        print(f"Error getting database activity: {e}")
+        return []
+
+def get_infrastructure_updates():
+    """Get recent git commits to track infrastructure changes."""
+    try:
+        # Parse git log for last 24 hours
+        result = subprocess.run(
+            ['/usr/bin/git', 'log', '--since=24 hours ago', '--pretty=format:%H|%an|%ar|%s', '-n', '20'],
+            cwd='/home/rod/home_ai_stack',
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        activities = []
+        if result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split('\n'):
+                if not line:
+                    continue
+                parts = line.split('|', 3)
+                if len(parts) == 4:
+                    commit_hash, author, time_ago, message = parts
+                    activities.append({
+                        'type': 'commit',
+                        'icon': '📝',
+                        'title': message[:60],
+                        'detail': f"by {author} • {time_ago}",
+                        'timestamp': datetime.now() - timedelta(hours=1),  # Approximate
+                        'category': 'infrastructure'
+                    })
+        
+        return activities[:10]
+    except Exception as e:
+        print(f"Error getting infrastructure updates: {e}")
+        return []
+
+def get_system_events():
+    """Get recent system events from services."""
+    activities = []
+    
+    try:
+        # Check google-trends service status
+        result = subprocess.run(
+            ['/usr/bin/systemctl', 'status', 'google-trends', '--no-pager'],
+            capture_output=True,
+            text=True,
+            timeout=3
+        )
+        
+        if 'active (running)' in result.stdout:
+            # Parse for last restart
+            for line in result.stdout.split('\n'):
+                if 'Active:' in line and 'since' in line:
+                    activities.append({
+                        'type': 'service',
+                        'icon': '🔄',
+                        'title': 'Dashboard Service Active',
+                        'detail': line.split('since')[1].strip() if 'since' in line else 'Running',
+                        'timestamp': datetime.now() - timedelta(hours=1),
+                        'category': 'system'
+                    })
+                    break
+    except Exception as e:
+        print(f"Error checking service status: {e}")
+    
+    # Add rclone cache status
+    try:
+        result = subprocess.run(
+            ['/usr/bin/ssh', 'rod@192.168.1.176', 'systemctl', 'is-active', 'rclone-media'],
+            capture_output=True,
+            text=True,
+            timeout=3
+        )
+        if result.returncode == 0 and 'active' in result.stdout:
+            activities.append({
+                'type': 'service',
+                'icon': '💽',
+                'title': 'Media Cache Active',
+                'detail': 'Legolas rclone-media.service running',
+                'timestamp': datetime.now() - timedelta(minutes=30),
+                'category': 'system'
+            })
+    except:
+        pass
+    
+    return activities
+
+def get_ai_activity():
+    """Get recent AI/LLM activity with detailed inference tracking."""
+    activities = []
+    
+    # Get Ollama model list and status
+    try:
+        result = subprocess.run(
+            ['/usr/bin/curl', '-s', 'http://192.168.1.211:11434/api/tags'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0 and result.stdout:
+            import json
+            try:
+                data = json.loads(result.stdout)
+                models = data.get('models', [])
+                if models:
+                    model_names = [m.get('name', 'unknown')[:20] for m in models[:3]]
+                    activities.append({
+                        'type': 'ollama',
+                        'icon': '🦙',
+                        'title': f'Ollama: {len(models)} Models Available',
+                        'detail': f"Active: {', '.join(model_names)}{'...' if len(models) > 3 else ''}",
+                        'timestamp': datetime.now() - timedelta(minutes=2),
+                        'category': 'ai'
+                    })
+            except:
+                activities.append({
+                    'type': 'ollama',
+                    'icon': '🦙',
+                    'title': 'Ollama API Online',
+                    'detail': 'LLM inference service running on Gandalf',
+                    'timestamp': datetime.now() - timedelta(minutes=2),
+                    'category': 'ai'
+                })
+    except:
+        pass
+    
+    # Check for recent Ollama inference (check running processes)
+    try:
+        result = subprocess.run(
+            ['/usr/bin/ssh', 'rod@192.168.1.211', 'ps aux | grep ollama | grep -v grep | wc -l'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip() != '0':
+            activities.append({
+                'type': 'inference',
+                'icon': '⚡',
+                'title': 'Active Inference Process',
+                'detail': f'{result.stdout.strip()} Ollama processes running',
+                'timestamp': datetime.now() - timedelta(minutes=1),
+                'category': 'ai'
+            })
+    except:
+        pass
+    
+    # Check Neo4j status and memory count
+    try:
+        result = subprocess.run(
+            ['/usr/bin/curl', '-s', '-u', 'neo4j:password', '-H', 'Accept: application/json', 
+             'http://192.168.1.211:7474/db/data/transaction/commit',
+             '-d', '{"statements":[{"statement":"MATCH (n) RETURN count(n) as count"}]}'],
+            capture_output=True,
+            text=True,
+            timeout=3
+        )
+        if result.returncode == 0:
+            import json
+            try:
+                data = json.loads(result.stdout)
+                if 'results' in data and data['results']:
+                    count = data['results'][0].get('data', [{}])[0].get('row', [0])[0]
+                    activities.append({
+                        'type': 'neo4j',
+                        'icon': '🔗',
+                        'title': 'Neo4j Memory Graph',
+                        'detail': f'{count:,} nodes stored in graph database',
+                        'timestamp': datetime.now() - timedelta(minutes=3),
+                        'category': 'ai'
+                    })
+            except:
+                activities.append({
+                    'type': 'neo4j',
+                    'icon': '🔗',
+                    'title': 'Neo4j Online',
+                    'detail': 'Graph database accessible',
+                    'timestamp': datetime.now() - timedelta(minutes=3),
+                    'category': 'ai'
+                })
+    except:
+        pass
+    
+    # Check Open Web UI status
+    try:
+        result = subprocess.run(
+            ['/usr/bin/curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://192.168.1.18:8080'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip() == '200':
+            activities.append({
+                'type': 'webui',
+                'icon': '💬',
+                'title': 'Open Web UI Active',
+                'detail': 'Chat interface online on Aragorn:8080',
+                'timestamp': datetime.now() - timedelta(minutes=5),
+                'category': 'ai'
+            })
+    except:
+        pass
+    
+    return activities
+
+def get_personalized_news():
+    """Get personalized AI/tech news from multiple sources."""
+    news_items = []
+    
+    # Hacker News - AI/ML stories
+    try:
+        result = subprocess.run(
+            ['/usr/bin/curl', '-s', 'https://hacker-news.firebaseio.com/v0/topstories.json'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            import json
+            story_ids = json.loads(result.stdout)[:30]  # Top 30 stories
+            
+            for story_id in story_ids[:15]:  # Check first 15
+                try:
+                    story_result = subprocess.run(
+                        ['/usr/bin/curl', '-s', f'https://hacker-news.firebaseio.com/v0/item/{story_id}.json'],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    if story_result.returncode == 0:
+                        story = json.loads(story_result.stdout)
+                        title = story.get('title', '').lower()
+                        # Filter for AI/ML/tech keywords
+                        if any(keyword in title for keyword in ['ai', 'ml', 'llm', 'gpt', 'model', 'neural', 'data', 'python', 'postgres', 'database', 'ollama', 'local']):
+                            news_items.append({
+                                'title': story.get('title'),
+                                'url': story.get('url', f"https://news.ycombinator.com/item?id={story_id}"),
+                                'source': 'Hacker News',
+                                'score': story.get('score', 0),
+                                'category': 'tech'
+                            })
+                            if len(news_items) >= 10:
+                                break
+                except:
+                    continue
+    except Exception as e:
+        print(f"Error fetching HN: {e}")
+    
+    # Add some curated AI/ML news if HN fails or not enough
+    if len(news_items) < 5:
+        fallback_news = [
+            {'title': 'Ollama 0.5 Released with Improved Performance', 'url': 'https://ollama.ai', 'source': 'Ollama Blog', 'category': 'ai'},
+            {'title': 'PostgreSQL 17 Features: Better Query Performance', 'url': 'https://postgresql.org', 'source': 'PostgreSQL', 'category': 'database'},
+            {'title': 'Self-Hosted AI Stack: Running LLMs Locally', 'url': 'https://github.com/topics/self-hosted-ai', 'source': 'GitHub', 'category': 'ai'},
+            {'title': 'Python 3.13 Released with Performance Improvements', 'url': 'https://python.org', 'source': 'Python.org', 'category': 'tech'},
+        ]
+        news_items.extend(fallback_news[:5 - len(news_items)])
+    
+    return news_items[:15]
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -1070,31 +1439,61 @@ HTML_TEMPLATE = """
                 </div>
             </div>
             
-            <!-- Trends Tab -->
+            <!-- Chronicles Tab (Live Activity Feed) -->
             <div class="tab-pane fade" id="trends">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="scroll-card">
-                            <h2 class="card-title">🏔 Trending in the West</h2>
-                            <div class="chart-container"><canvas id="usChart"></canvas></div>
-                            {% for item in trending_us %}
-                            <a href="https://www.google.com/search?q={{ item.title | urlencode }}" target="_blank" class="data-item">
-                                <div class="rank-badge">{{ loop.index }}</div>
-                                <div class="trend-text">{{ item.title }}</div>
-                            </a>
-                            {% endfor %}
+                <div class="scroll-card">
+                    <h2 class="card-title">📜 Chronicles of the Fellowship</h2>
+                    <p style="text-align: center; color: rgba(244, 232, 208, 0.6); margin-bottom: 20px; font-style: italic;">
+                        Live intelligence from across Middle-earth • Auto-refreshes every 30 seconds
+                    </p>
+                    
+                    <div class="row">
+                        <!-- Database Activity -->
+                        <div class="col-md-3">
+                            <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05)); border: 2px solid var(--gold); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: var(--gold); margin-bottom: 15px; text-align: center; border-bottom: 1px solid var(--gold); padding-bottom: 8px;">
+                                    💾 Database Activity
+                                </h3>
+                                <div id="database-feed" style="max-height: 500px; overflow-y: auto;">
+                                    <div style="text-align: center; color: #888; padding: 20px;">Loading...</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="scroll-card">
-                            <h2 class="card-title">🌍 Across All Realms</h2>
-                            <div class="chart-container"><canvas id="globalChart"></canvas></div>
-                            {% for item in trending_global %}
-                            <a href="https://www.google.com/search?q={{ item.title | urlencode }}" target="_blank" class="data-item">
-                                <div class="rank-badge">{{ loop.index }}</div>
-                                <div class="trend-text">{{ item.title }}</div>
-                            </a>
-                            {% endfor %}
+                        
+                        <!-- Infrastructure Updates -->
+                        <div class="col-md-3">
+                            <div style="background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)); border: 2px solid var(--bronze); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: var(--bronze); margin-bottom: 15px; text-align: center; border-bottom: 1px solid var(--bronze); padding-bottom: 8px;">
+                                    📝 Infrastructure
+                                </h3>
+                                <div id="infrastructure-feed" style="max-height: 500px; overflow-y: auto;">
+                                    <div style="text-align: center; color: #888; padding: 20px;">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- System Events -->
+                        <div class="col-md-3">
+                            <div style="background: linear-gradient(135deg, rgba(32, 201, 151, 0.15), rgba(32, 201, 151, 0.05)); border: 2px solid #20c997; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: #20c997; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #20c997; padding-bottom: 8px;">
+                                    🔄 System Status
+                                </h3>
+                                <div id="system-feed" style="max-height: 500px; overflow-y: auto;">
+                                    <div style="text-align: center; color: #888; padding: 20px;">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Activity -->
+                        <div class="col-md-3">
+                            <div style="background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(138, 43, 226, 0.05)); border: 2px solid #8a2be2; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: #8a2be2; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #8a2be2; padding-bottom: 8px;">
+                                    🧠 AI Services
+                                </h3>
+                                <div id="ai-feed" style="max-height: 500px; overflow-y: auto;">
+                                    <div style="text-align: center; color: #888; padding: 20px;">Loading...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1631,6 +2030,65 @@ HTML_TEMPLATE = """
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Chronicles Live Feed
+        function updateChroniclesFeed() {
+            fetch('/api/chronicles')
+                .then(response => response.json())
+                .then(data => {
+                    // Update each feed column
+                    updateFeedColumn('database-feed', data.database || []);
+                    updateFeedColumn('infrastructure-feed', data.infrastructure || []);
+                    updateFeedColumn('system-feed', data.system || []);
+                    updateFeedColumn('ai-feed', data.ai || []);
+                })
+                .catch(err => {
+                    console.error('Chronicles feed error:', err);
+                });
+        }
+        
+        function updateFeedColumn(elementId, activities) {
+            const container = document.getElementById(elementId);
+            if (!container) return;
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px; font-style: italic;">No recent activity</div>';
+                return;
+            }
+            
+            let html = '';
+            activities.forEach(activity => {
+                const timeAgo = activity.timestamp ? formatTimeAgo(new Date(activity.timestamp)) : 'Recently';
+                html += `
+                    <div style="padding: 10px; margin: 8px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), rgba(205, 127, 50, 0.03)); border-left: 3px solid var(--gold); border-radius: 3px; transition: all 0.2s;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                            <span style="font-size: 1.3em; flex-shrink: 0;">${activity.icon}</span>
+                            <div style="flex: 1;">
+                                <div style="color: var(--parchment); font-weight: 600; font-size: 0.85em; margin-bottom: 3px;">${activity.title}< /div>
+                                <div style="color: rgba(244, 232, 208, 0.7); font-size: 0.75em; margin-bottom: 2px;">${activity.detail}</div>
+                                <div style="color: rgba(244, 232, 208, 0.5); font-size: 0.7em;">${timeAgo}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'Just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+        
+        // Initial load and refresh every 30 seconds
+        updateChroniclesFeed();
+        setInterval(updateChroniclesFeed, 30000);
+        
         // Charts removed in new layout
         setTimeout(() => location.reload(), 300000);
         let timeLeft = 300;
@@ -1809,6 +2267,37 @@ def api_analytics():
         'clusters': get_jackpot_clusters(),
         'banks': get_hot_banks()
     })
+
+@app.route('/api/chronicles')
+def api_chronicles():
+    """Live activity feed for Chronicles tab."""
+    try:
+        all_activities = []
+        all_activities.extend(get_database_activity())
+        all_activities.extend(get_infrastructure_updates())
+        all_activities.extend(get_system_events())
+        all_activities.extend(get_ai_activity())
+        all_activities.sort(key=lambda x: x.get('timestamp', datetime.now()), reverse=True)
+        
+        categorized = {
+            'database': [a for a in all_activities if a.get('category') == 'database'],
+            'infrastructure': [a for a in all_activities if a.get('category') == 'infrastructure'],
+            'system': [a for a in all_activities if a.get('category') == 'system'],
+            'ai': [a for a in all_activities if a.get('category') == 'ai'],
+            'all': all_activities[:30]
+        }
+        
+        for activities in categorized.values():
+            for activity in (activities if isinstance(activities, list) else []):
+                if 'timestamp' in activity and isinstance(activity['timestamp'], datetime):
+                    activity['timestamp'] = activity['timestamp'].isoformat()
+        
+        return jsonify(categorized)
+    except Exception as e:
+        print(f"Error in chronicles API: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'database': [], 'infrastructure': [], 'system': [], 'ai': [], 'all': []})
 
 @app.route('/payouts')
 def payouts_ranking():
