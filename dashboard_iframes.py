@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Iframe section routes with 1-3 flame heat rating and location-based high limit detection
+Iframe section routes with dual 24h/7d heat ratings for real-time trend detection
 """
 from flask import render_template_string
 from datetime import datetime
@@ -15,30 +15,36 @@ def get_db_connection():
     except:
         return None
 
-def get_heat_rating(hits_7d, hits_30d):
-    """Calculate 1-3 flame heat rating based on recent activity"""
+def get_heat_rating_24h(hits_24h, hits_7d):
+    """Calculate 1-3 flame rating for last 24 hours vs last 7 days"""
+    if hits_7d == 0:
+        return "🔥", "heat-1"
+    
+    daily_rate_24h = hits_24h  # hits in last 24h
+    avg_daily_rate_7d = hits_7d / 7.0  # average daily from 7d
+    
+    # Compare 24h activity to 7d average
+    if daily_rate_24h > avg_daily_rate_7d * 2.0:
+        return "🔥🔥🔥", "heat-3"  # Super hot RIGHT NOW
+    elif daily_rate_24h > avg_daily_rate_7d * 1.3:
+        return "🔥🔥", "heat-2"  # Heating up
+    else:
+        return "🔥", "heat-1"  # Normal
+
+def get_heat_rating_7d(hits_7d, hits_30d):
+    """Calculate 1-3 flame rating for last 7 days vs last 30 days"""
     if hits_30d == 0:
-        return "🔥", "heat-1"  # Cold but has some hits
+        return "🔥", "heat-1"
     
     weekly_rate = hits_7d / 7.0
     monthly_rate = hits_30d / 30.0
     
-    # 3-flame system based on acceleration
     if weekly_rate > monthly_rate * 1.5:
-        return "🔥🔥🔥", "heat-3"  # Super hot
+        return "🔥🔥🔥", "heat-3"  # Hot trend
     elif weekly_rate > monthly_rate * 1.1:
-        return "🔥🔥", "heat-2"  # Hot
+        return "🔥🔥", "heat-2"  # Warming
     else:
-        return "🔥", "heat-1"  # Warm
-
-def is_high_limit_location(location_id):
-    """Determine if a location is in the high limit room based on zone prefix"""
-    if not location_id:
-        return False
-    # Common high limit prefixes - adjust based on your casino layout
-    high_limit_prefixes = ['HL', 'VIP', 'HI', 'HR']  # HL=High Limit, HR=High Roller, etc
-    prefix = location_id[:2].upper()
-    return prefix in high_limit_prefixes
+        return "🔥", "heat-1"  # Steady
 
 def classify_manufacturer(machine_name):
     """Classify manufacturer from machine name"""
@@ -55,7 +61,7 @@ def classify_manufacturer(machine_name):
         return 'Ainsworth'
     return 'Unknown'
 
-# Shared iframe styles with 3-flame heat CSS
+# Enhanced styles with dual heat indicators
 IFRAME_STYLES = """
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -162,14 +168,36 @@ IFRAME_STYLES = """
         color: rgba(244, 232, 208, 0.9); 
         margin-top: 6px; 
     }
+    .heat-indicators {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .heat-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+    .heat-label {
+        font-size: 0.65em;
+        color: rgba(244, 232, 208, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
     .machine-detail { 
         font-size: 0.75em; 
         color: rgba(244, 232, 208, 0.7); 
         margin-top: 4px; 
     }
-    .heat-3 { color: #ff3333; font-size: 1.2em; text-shadow: 0 0 8px #ff3333; }
+    .heat-3 { color: #ff3333; font-size: 1.2em; text-shadow: 0 0 8px #ff3333; animation: pulse 2s infinite; }
     .heat-2 { color: #ff8844; font-size: 1.1em; text-shadow: 0 0 6px #ff8844; }
     .heat-1 { color: #ffd43b; font-size: 1.0em; }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
 </style>
 """
 
@@ -178,7 +206,7 @@ def register_iframe_routes(app):
     
     @app.route('/section/high-limit')
     def section_high_limit():
-        """High Limit Room section - Based on location zones"""
+        """High Limit Room section with 24h/7d heat tracking"""
         conn = get_db_connection()
         if not conn:
             return "Database error", 500
@@ -186,7 +214,7 @@ def register_iframe_routes(app):
         try:
             cur = conn.cursor()
             
-            # High limit stats - use amount >= 10000 as proxy for high limit
+            # High limit stats
             cur.execute("""
                 SELECT 
                     COUNT(*) as count,
@@ -197,7 +225,7 @@ def register_iframe_routes(app):
             """)
             stats = dict(cur.fetchone() or {'count': 0, 'avg': 0, 'max': 0})
             
-            # Top high-limit machines
+            # Top high-limit machines with 24h tracking
             cur.execute("""
                 SELECT 
                     j.machine_name,
@@ -206,6 +234,7 @@ def register_iframe_routes(app):
                     COUNT(*) as hit_count,
                     ROUND(AVG(j.amount), 2) as avg_payout,
                     MAX(j.amount) as max_payout,
+                    COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '24 hours') as hits_24h,
                     COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') as hits_7d,
                     COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '30 days') as hits_30d,
                     s.manufacturer,
@@ -218,14 +247,15 @@ def register_iframe_routes(app):
                 GROUP BY j.machine_name, j.denomination, j.location_id, s.manufacturer, s.volatility
                 HAVING COUNT(*) >= 2 
                     AND COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') > 0
-                ORDER BY COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') * AVG(j.amount) DESC
+                ORDER BY COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '24 hours') * AVG(j.amount) DESC
                 LIMIT 50
             """)
             machines = [dict(row) for row in cur.fetchall()]
             
-            # Add heat ratings and fallback manufacturer
+            # Add dual heat ratings
             for m in machines:
-                m['heat_text'], m['heat_class'] = get_heat_rating(m['hits_7d'], m['hits_30d'])
+                m['heat_24h_text'], m['heat_24h_class'] = get_heat_rating_24h(m['hits_24h'], m['hits_7d'])
+                m['heat_7d_text'], m['heat_7d_class'] = get_heat_rating_7d(m['hits_7d'], m['hits_30d'])
                 if not m['manufacturer']:
                     m['manufacturer'] = classify_manufacturer(m['machine_name'])
                 if not m['volatility']:
@@ -270,10 +300,19 @@ def register_iframe_routes(app):
                         <span class="meta-item">⚡ {{ m.volatility }}</span>
                     </div>
                     <div class="machine-stats">
-                        <span class="heat-{{ m.heat_class }}">{{ m.heat_text }}</span>
+                        <div class="heat-indicators">
+                            <div class="heat-badge">
+                                <span class="heat-{{ m.heat_24h_class }}">{{ m.heat_24h_text }}</span>
+                                <span class="heat-label">24h</span>
+                            </div>
+                            <div class="heat-badge">
+                                <span class="heat-{{ m.heat_7d_class }}">{{ m.heat_7d_text }}</span>
+                                <span class="heat-label">7d</span>
+                            </div>
+                        </div>
                         <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">📊 {{ m.hits_7d }} hits last 7d • 💎 Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
+                    <div class="machine-detail">📊 {{ m.hits_24h }}h/{{ m.hits_7d }}d/{{ m.hits_30d }}m • �� Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
                 {% endfor %}
                 
@@ -290,7 +329,7 @@ def register_iframe_routes(app):
     
     @app.route('/section/regular-floor')
     def section_regular_floor():
-        """Regular Floor section - Under $10k jackpots"""
+        """Regular Floor section with 24h/7d heat tracking"""
         conn = get_db_connection()
         if not conn:
             return "Database error", 500
@@ -311,7 +350,7 @@ def register_iframe_routes(app):
             """)
             stats = dict(cur.fetchone() or {'count': 0, 'avg': 0, 'max': 0})
             
-            # Top regular floor machines
+            # Top regular floor machines with 24h tracking
             cur.execute("""
                 SELECT 
                     j.machine_name,
@@ -320,6 +359,7 @@ def register_iframe_routes(app):
                     COUNT(*) as hit_count,
                     ROUND(AVG(j.amount), 2) as avg_payout,
                     MAX(j.amount) as max_payout,
+                    COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '24 hours') as hits_24h,
                     COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') as hits_7d,
                     COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '30 days') as hits_30d,
                     s.manufacturer,
@@ -332,14 +372,15 @@ def register_iframe_routes(app):
                 GROUP BY j.machine_name, j.denomination, j.location_id, s.manufacturer, s.volatility
                 HAVING COUNT(*) >= 3
                     AND COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') > 0
-                ORDER BY COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '7 days') * AVG(j.amount) DESC
+                ORDER BY COUNT(*) FILTER (WHERE j.hit_timestamp > NOW() - INTERVAL '24 hours') * AVG(j.amount) DESC
                 LIMIT 50
             """)
             machines = [dict(row) for row in cur.fetchall()]
             
-            # Add heat ratings and fallback manufacturer
+            # Add dual heat ratings
             for m in machines:
-                m['heat_text'], m['heat_class'] = get_heat_rating(m['hits_7d'], m['hits_30d'])
+                m['heat_24h_text'], m['heat_24h_class'] = get_heat_rating_24h(m['hits_24h'], m['hits_7d'])
+                m['heat_7d_text'], m['heat_7d_class'] = get_heat_rating_7d(m['hits_7d'], m['hits_30d'])
                 if not m['manufacturer']:
                     m['manufacturer'] = classify_manufacturer(m['machine_name'])
                 if not m['volatility']:
@@ -384,10 +425,19 @@ def register_iframe_routes(app):
                         <span class="meta-item">⚡ {{ m.volatility }}</span>
                     </div>
                     <div class="machine-stats">
-                        <span class="heat-{{ m.heat_class }}">{{ m.heat_text }}</span>
+                        <div class="heat-indicators">
+                            <div class="heat-badge">
+                                <span class="heat-{{ m.heat_24h_class }}">{{ m.heat_24h_text }}</span>
+                                <span class="heat-label">24h</span>
+                            </div>
+                            <div class="heat-badge">
+                                <span class="heat-{{ m.heat_7d_class }}">{{ m.heat_7d_text }}</span>
+                                <span class="heat-label">7d</span>
+                            </div>
+                        </div>
                         <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">📊 {{ m.hits_7d }} hits last 7d • 💎 Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
+                    <div class="machine-detail">📊 {{ m.hits_24h }}h/{{ m.hits_7d }}d/{{ m.hits_30d }}m • 💎 Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
                 {% endfor %}
                 
