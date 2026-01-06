@@ -141,7 +141,7 @@ def register_iframe_routes(app):
                         <span>{{ m.denomination }}</span>
                         <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">{{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
+                    <div class="machine-detail">Location: {{ m.location_id }} • {{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
                 {% endfor %}
                 
@@ -236,7 +236,7 @@ def register_iframe_routes(app):
                         <span>{{ m.denomination }}</span>
                         <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">{{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
+                    <div class="machine-detail">Location: {{ m.location_id }} • {{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
                 {% endfor %}
                 
