@@ -1316,7 +1316,7 @@ HTML_TEMPLATE = """
                     <div class="col-md-8">
                         <div class="scroll-card">
                             <h2 class="card-title">📡 Live Intelligence Feed</h2>
-                            <div style="font-size: 0.8em; color: rgba(244, 232, 208, 0.6); margin-bottom: 15px;">Real-time intercepts from external casino networks</div>
+                            <div style="font-size: 0.8em; color: rgba(255, 255, 255, 0.95); margin-bottom: 15px;">Real-time intercepts from external casino networks</div>
                             {% if multi_casino and multi_casino.latest %}
                             {% for hit in multi_casino.latest %}
                             <div style="padding: 10px; margin: 5px 0; background: linear-gradient(90deg, rgba(32, 201, 151, 0.1), rgba(32, 201, 151, 0.02)); border-left: 3px solid #20c997; display: flex; justify-content: space-between; align-items: center;">
@@ -1326,7 +1326,7 @@ HTML_TEMPLATE = """
                                 </div>
                                 <div style="text-align: right;">
                                     <div style="color: var(--gold); font-weight: bold; font-size: 1.1em;">${{ "{:,.2f}".format(hit.amount) }}</div>
-                                    <a href="{{ hit.source_url }}" target="_blank" style="font-size: 0.7em; color: #aaa; text-decoration: none;">Source ↗</a>
+                                    <a href="{{ hit.source_url }}" target="_blank" style="font-size: 0.7em; color: white; text-decoration: none;">Source ↗</a>
                                 </div>
                             </div>
                             {% endfor %}
@@ -1355,7 +1355,7 @@ HTML_TEMPLATE = """
                             {% for machine in multi_casino.top_machines %}
                             <div style="padding: 8px; margin: 4px 0; background: rgba(0,0,0,0.2);">
                                 <div style="color: #fff; font-size: 0.9em;">{{ machine.machine_name }}</div>
-                                <div style="font-size: 0.75em; color: #aaa;">Found at: {{ machine.locations }}</div>
+                                <div style="font-size: 0.75em; color: white;">Found at: {{ machine.locations }}</div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.8em; margin-top: 2px;">
                                     <span style="color: var(--bronze);">{{ machine.hits }} hits</span>
                                     <span style="color: var(--gold);">${{ "{:,.0f}".format(machine.avg_payout) }}</span>
@@ -1443,7 +1443,7 @@ HTML_TEMPLATE = """
             <div class="tab-pane fade" id="trends">
                 <div class="scroll-card">
                     <h2 class="card-title">📜 Chronicles of the Fellowship</h2>
-                    <p style="text-align: center; color: rgba(244, 232, 208, 0.6); margin-bottom: 20px; font-style: italic;">
+                    <p style="text-align: center; color: rgba(255, 255, 255, 0.95); margin-bottom: 20px; font-style: italic;">
                         Live intelligence from across Middle-earth • Auto-refreshes every 30 seconds
                     </p>
                     
@@ -1739,7 +1739,7 @@ HTML_TEMPLATE = """
                                     </div>
                                     {% endfor %}
                                 </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 0.65em; color: rgba(244, 232, 208, 0.6);">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.65em; color: rgba(255, 255, 255, 0.95);">
                                     <span>{{ stats.activity_by_time[0].label if stats.activity_by_time else '2h ago' }}</span>
                                     <span>{{ stats.activity_by_time[-1].label if stats.activity_by_time else 'Now' }}</span>
                                 </div>
@@ -1747,7 +1747,7 @@ HTML_TEMPLATE = """
 
                              <!-- Recommended Machines -->
                             <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: #00ff9f; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #00ff9f; padding-bottom: 5px;">⭐ PLAY THESE NOW</h3>
-                            <p style="font-size: 0.8em; color: rgba(244, 232, 208, 0.6); margin-bottom: 10px;">Best combo of frequency + payout</p>
+                            <p style="font-size: 0.8em; color: rgba(255, 255, 255, 0.95); margin-bottom: 10px;">Best combo of frequency + payout</p>
                             {% for rec in stats.recommended[:5] %}
                             <div style="padding: 10px; margin: 8px 0; background: linear-gradient(90deg, rgba(0, 255, 159, 0.15), rgba(0, 255, 159, 0.05)); border-left: 4px solid #00ff9f; border-radius: 4px;">
                                 <div style="margin-bottom: 5px;">
@@ -1801,7 +1801,7 @@ HTML_TEMPLATE = """
                                         <span style="color: rgba(244, 232, 208, 0.8);">{{ hl.denomination }}</span>
                                         <span style="color: #00ff9f; font-weight: 700;">${{ "{:,.0f}".format(hl.avg_payout) }}</span>
                                     </div>
-                                    <div style="font-size: 0.7em; color: rgba(244, 232, 208, 0.6); margin-top: 2px;">{{ "{:,}".format(hl.hit_count) }} hits • Max: ${{ "{:,.0f}".format(hl.max_payout) }}</div>
+                                    <div style="font-size: 0.7em; color: rgba(255, 255, 255, 0.95); margin-top: 2px;">{{ "{:,}".format(hl.hit_count) }} hits • Max: ${{ "{:,.0f}".format(hl.max_payout) }}</div>
                                 </div>
                                 {% endfor %}
                                 {% endif %}
@@ -1840,7 +1840,7 @@ HTML_TEMPLATE = """
                                         <span style="color: rgba(244, 232, 208, 0.8);">{{ rf.denomination }}</span>
                                         <span style="color: var(--gold); font-weight: 700;">${{ "{:,.0f}".format(rf.avg_payout) }}</span>
                                     </div>
-                                    <div style="font-size: 0.7em; color: rgba(244, 232, 208, 0.6); margin-top: 2px;">{{ "{:,}".format(rf.hit_count) }} hits • Max: ${{ "{:,.0f}".format(rf.max_payout) }}</div>
+                                    <div style="font-size: 0.7em; color: rgba(255, 255, 255, 0.95); margin-top: 2px;">{{ "{:,}".format(rf.hit_count) }} hits • Max: ${{ "{:,.0f}".format(rf.max_payout) }}</div>
                                 </div>
                                 {% endfor %}
                                 {% endif %}
@@ -1882,7 +1882,7 @@ HTML_TEMPLATE = """
                             
                             <!-- Best Time to Play (Moved here, 24h list) -->
                             <h3 style="font-family: 'Cinzel', serif; font-size: 1.1em; color: var(--gold); margin-bottom: 10px; border-bottom: 1px solid var(--bronze); padding-bottom: 5px;">⏰ Best Time to Play (All-Time)</h3>
-                            <p style="font-size: 0.75em; color: rgba(244, 232, 208, 0.6); margin-bottom: 10px;">Based on all historical jackpot frequency</p>
+                            <p style="font-size: 0.75em; color: rgba(255, 255, 255, 0.95); margin-bottom: 10px;">Based on all historical jackpot frequency</p>
                             <div style="max-height: 400px; overflow-y: auto; margin-bottom: 25px; padding-right: 5px;">
                                 {% for hour in stats.best_hours %}
                                 <div style="padding: 8px; margin: 4px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05)); border-left: 3px solid var(--gold); display: flex; justify-content: space-between; align-items: center;">
@@ -1903,7 +1903,7 @@ HTML_TEMPLATE = """
                                     <div style="background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 4px; border: 1px solid rgba(212, 175, 55, 0.2); transition: all 0.2s;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                             <span style="color: var(--gold); font-weight: 700;">{{ zone.zone }} {% if zone.zone == 'HD' %}(Hi-Lim){% endif %}</span>
-                                            <span style="font-size: 0.8em; color: rgba(244, 232, 208, 0.6);">{{ zone.hits }} hits</span>
+                                            <span style="font-size: 0.8em; color: rgba(255, 255, 255, 0.95);">{{ zone.hits }} hits</span>
                                         </div>
                                         <div style="font-size: 0.8em; color: var(--bronze);">Avg: ${{ "%.0f"|format(zone.avg_payout) }}</div>
                                     </div>
@@ -1919,7 +1919,7 @@ HTML_TEMPLATE = """
                                     <div style="background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 4px; border: 1px solid rgba(0, 255, 159, 0.2); transition: all 0.2s;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                             <span style="color: #00ff9f; font-weight: 700;">{{ zone.zone }}</span>
-                                            <span style="font-size: 0.8em; color: rgba(244, 232, 208, 0.6);">{{ zone.hits }} hits</span>
+                                            <span style="font-size: 0.8em; color: rgba(255, 255, 255, 0.95);">{{ zone.hits }} hits</span>
                                         </div>
                                         <div style="font-size: 0.8em; color: var(--bronze);">Avg: ${{ "%.0f"|format(zone.avg_payout) }}</div>
                                     </div>
@@ -2341,7 +2341,7 @@ def payouts_ranking():
                                     <div style="font-weight: bold; color: var(--text-light);">{{ m.machine_name }}</div>
                                     <div style="font-size: 0.8em; color: #666;">Last hit: {{ m.last_hit.strftime('%m/%d') }}</div>
                                 </td>
-                                <td><span class="badge bg-secondary" style="background: rgba(255,255,255,0.1) !important; color: #aaa;">{{ m.location_id }}</span></td>
+                                <td><span class="badge bg-secondary" style="background: rgba(255,255,255,0.1) !important; color: white;">{{ m.location_id }}</span></td>
                                 <td class="text-end" style="font-size: 1.1em; color: var(--accent); font-weight: bold;">${{ "{:,.0f}".format(m.avg_payout) }}</td>
                                 <td class="text-end" style="color: #ccc;">${{ "{:,.0f}".format(m.max_payout) }}</td>
                                 <td class="text-end">
@@ -4215,19 +4215,19 @@ def jvi_rankings():
                         <div class="col-md-4">
                             <div style="padding: 15px; background: rgba(255, 107, 107, 0.1); border-left: 4px solid #ff6b6b;">
                                 <h4 style="color: #ff6b6b;">Big Wins Cluster</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">Machines with high total payouts and large jackpots. Best for chasing big wins.</p>
+                                <p style="font-size: 0.9em; color: white;">Machines with high total payouts and large jackpots. Best for chasing big wins.</p>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div style="padding: 15px; background: rgba(77, 171, 247, 0.1); border-left: 4px solid #4dabf7;">
                                 <h4 style="color: #4dabf7;">Fast Cycle Cluster</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">Frequent hitters with short gaps between jackpots. Best for consistent action.</p>
+                                <p style="font-size: 0.9em; color: white;">Frequent hitters with short gaps between jackpots. Best for consistent action.</p>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div style="padding: 15px; background: rgba(255, 212, 59, 0.1); border-left: 4px solid #ffd43b;">
                                 <h4 style="color: #ffd43b;">Balanced Cluster</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">Well-rounded machines with good frequency and payout balance.</p>
+                                <p style="font-size: 0.9em; color: white;">Well-rounded machines with good frequency and payout balance.</p>
                             </div>
                         </div>
                     </div>
@@ -4516,25 +4516,25 @@ def cluster_visualization():
                         <div class="col-md-3">
                             <div style="padding: 15px; background: rgba(255, 107, 107, 0.1); border-left: 4px solid #ff6b6b;">
                                 <h4 style="color: #ff6b6b;">💰 Big Wins</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">High total payout + high avg jackpot</p>
+                                <p style="font-size: 0.9em; color: white;">High total payout + high avg jackpot</p>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div style="padding: 15px; background: rgba(77, 171, 247, 0.1); border-left: 4px solid #4dabf7;">
                                 <h4 style="color: #4dabf7;">🔥 Fast Cycle</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">High hit rate + low hours between hits</p>
+                                <p style="font-size: 0.9em; color: white;">High hit rate + low hours between hits</p>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div style="padding: 15px; background: rgba(32, 201, 151, 0.1); border-left: 4px solid #20c997;">
                                 <h4 style="color: #20c997;">📈 High Volume</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">High hit count, consistent activity</p>
+                                <p style="font-size: 0.9em; color: white;">High hit count, consistent activity</p>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div style="padding: 15px; background: rgba(212, 175, 55, 0.1); border-left: 4px solid #d4af37;">
                                 <h4 style="color: #d4af37;">⚖️ Balanced</h4>
-                                <p style="font-size: 0.9em; color: #aaa;">Well-rounded across all metrics</p>
+                                <p style="font-size: 0.9em; color: white;">Well-rounded across all metrics</p>
                             </div>
                         </div>
                     </div>
@@ -4542,7 +4542,7 @@ def cluster_visualization():
                 
                 <div class="card p-4 mt-4">
                     <h3 style="color: var(--gold);">💡 How to Read This Chart</h3>
-                    <ul style="color: #aaa;">
+                    <ul style="color: white;">
                         <li><strong>X-Axis (Payout Volume):</strong> Normalized total payout - further right = higher total winnings</li>
                         <li><strong>Y-Axis (Hit Frequency):</strong> Normalized hit rate - higher up = more frequent jackpots</li>
                         <li><strong>Bubble Size:</strong> Average jackpot amount - larger bubbles = bigger average wins</li>
@@ -4751,14 +4751,14 @@ def retrain_jvi():
                 
                 <div class="card p-4">
                     <h3 style="color: var(--gold);">Model Retraining</h3>
-                    <p style="color: #aaa; margin: 20px 0;">
+                    <p style="color: white; margin: 20px 0;">
                         This will retrain the machine learning model using the latest jackpot data.
                         The process typically takes 10-30 seconds depending on data volume.
                     </p>
                     
                     <div style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
                         <h4 style="color: #ffc107; margin-top: 0;">⚠️ Important</h4>
-                        <ul style="color: #aaa; margin: 10px 0;">
+                        <ul style="color: white; margin: 10px 0;">
                             <li>Retraining will use all available jackpot data</li>
                             <li>The current model will be backed up automatically</li>
                             <li>Analytics will be briefly unavailable during training</li>
@@ -4849,7 +4849,7 @@ def cluster_trends():
                 
                 <div class="card p-4 mt-4">
                     <h3 style="color: var(--gold);">💡 Understanding Cluster Trends</h3>
-                    <ul style="color: #aaa;">
+                    <ul style="color: white;">
                         <li><strong>Rising Lines:</strong> More machines joining this cluster</li>
                         <li><strong>Falling Lines:</strong> Machines moving to other clusters</li>
                         <li><strong>Stable Lines:</strong> Consistent cluster membership</li>
@@ -5022,7 +5022,7 @@ def jackpot_forecast():
                 
                 <div class="card p-4 mt-4">
                     <h3 style="color: var(--gold);">📊 Forecast Insights</h3>
-                    <ul style="color: #aaa;">
+                    <ul style="color: white;">
                         <li><strong>Blue Line:</strong> Predicted daily jackpot count</li>
                         <li><strong>Shaded Area:</strong> 95% confidence interval</li>
                         <li><strong>Black Dots:</strong> Historical actual data</li>
