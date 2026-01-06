@@ -100,7 +100,7 @@ def register_iframe_routes(app):
                 HAVING COUNT(*) >= 2 
                     AND COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') > 0
                 ORDER BY COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') * AVG(amount) DESC
-                LIMIT 5
+                LIMIT 50
             """)
             machines = [dict(row) for row in cur.fetchall()]
             
@@ -196,7 +196,7 @@ def register_iframe_routes(app):
                 HAVING COUNT(*) >= 3
                     AND COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') > 0
                 ORDER BY COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') * AVG(amount) DESC
-                LIMIT 5
+                LIMIT 50
             """)
             machines = [dict(row) for row in cur.fetchall()]
             
