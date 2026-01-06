@@ -80,7 +80,10 @@ def scrape_urcomped_search(machine_name):
 def save_urcomped_data(data):
     """Save URComped data to database"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
+        if not conn:
+            print("❌ Database connection failed")
+            return 0
         cur = conn.cursor()
         
         # Update machine_specs with URComped data
@@ -123,7 +126,10 @@ def save_urcomped_data(data):
 
 def main():
     """Scrape URComped for our top machines"""
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = get_db_connection()
+    if not conn:
+        print("❌ Database connection failed")
+        return
     cur = conn.cursor()
     
     # Get top machines by jackpot frequency

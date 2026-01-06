@@ -8,6 +8,11 @@ from bs4 import BeautifulSoup
 import psycopg2
 from datetime import datetime
 import time
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.db_pool import get_db_connection
 
 def scrape_boyd_gaming(machine_name):
     """Search Boyd Gaming's unified slot search"""
@@ -70,7 +75,10 @@ def scrape_boyd_gaming(machine_name):
 def save_boyd_data(data):
     """Save Boyd Gaming location data"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
+        if not conn:
+            print("❌ Failed to connect to database")
+            return
         cur = conn.cursor()
         
         # Store in community_feedback as location intelligence
@@ -97,7 +105,10 @@ def save_boyd_data(data):
 
 def main():
     """Scrape Boyd Gaming for our machines"""
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = get_db_connection()
+    if not conn:
+        print("❌ Failed to connect to database")
+        return
     cur = conn.cursor()
     
     # Get our top machines

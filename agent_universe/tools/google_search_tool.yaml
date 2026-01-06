@@ -1,0 +1,6 @@
+name: 'google_search_tool'
+description: 'Google Search Tool'
+metadata:
+  type: 'TOOL'
+  module: 'agentuniverse.agent.action.tool.common_tool.google_search_tool'
+  class: 'GoogleSearchTool'

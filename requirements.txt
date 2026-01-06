@@ -17,3 +17,14 @@ rank-bm25        # Required by langchain-neo4j
 ollama           # Official Python client
 psycopg2-binary  # Common Postgres adapter
 youtube-transcript-api  # YouTube transcript extraction
+flask
+flask-caching
+redis
+pandas
+pytrends
+feedparser
+beautifulsoup4
+psycopg2-binary
+weasyprint
+prophet
+requests

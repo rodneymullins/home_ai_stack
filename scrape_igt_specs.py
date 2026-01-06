@@ -7,6 +7,11 @@ from bs4 import BeautifulSoup
 import psycopg2
 from datetime import datetime
 import time
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.db_pool import get_db_connection
 
 def scrape_igt_machine(machine_name):
     """
@@ -75,7 +80,7 @@ def scrape_igt_machine(machine_name):
 def save_spec_to_db(spec):
     """Save spec data to database"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
         cur = conn.cursor()
         
         cur.execute("""
@@ -107,7 +112,7 @@ def save_spec_to_db(spec):
 
 def main():
     """Scrape specs for ALL IGT machines in our database"""
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = get_db_connection()
     cur = conn.cursor()
     
     # Get ALL IGT machines (no limit)

@@ -9,6 +9,12 @@ from bs4 import BeautifulSoup
 import psycopg2
 from datetime import datetime
 import time
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.db_pool import get_db_connection
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -109,7 +115,10 @@ def scrape_casino_jackpots(casino_name, base_url):
 def save_multi_casino_data(jackpots):
     """Save jackpot data with casino source"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
+        if not conn:
+            print("❌ Failed to get database connection")
+            return 0
         cur = conn.cursor()
         
         # Create multi-casino table if needed
@@ -154,7 +163,10 @@ def save_multi_casino_data(jackpots):
 def analyze_cross_casino_performance():
     """Compare machine performance across casinos"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
+        if not conn:
+            print("❌ Failed to get database connection")
+            return
         cur = conn.cursor()
         
         cur.execute("""

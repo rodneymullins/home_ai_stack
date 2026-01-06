@@ -1,0 +1,5 @@
+[LOG_CONFIG]
+log_path = '/Users/rod/agent_universe_doe/logs'
+level = 'INFO'
+rotation = '100 MB'
+retention = '10 days'

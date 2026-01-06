@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Retrain JVI Model</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+        <h1 class="text-center mb-4" style="color: var(--gold);">🔄 Retrain JVI Model</h1>
+
+        <div class="card p-4" style="background: rgba(26,26,26,0.95); border: 1px solid #444;">
+            <h3 style="color: var(--gold);">Model Retraining</h3>
+            <p style="color: #aaa; margin: 20px 0;">
+                This will retrain the machine learning model using the latest jackpot data.
+                The process typically takes 10-30 seconds depending on data volume.
+            </p>
+
+            <div
+                style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+                <h4 style="color: #ffc107; margin-top: 0;">⚠️ Important</h4>
+                <ul style="color: #aaa; margin: 10px 0;">
+                    <li>Retraining will use all available jackpot data</li>
+                    <li>The current model will be backed up automatically</li>
+                    <li>Analytics will be briefly unavailable during training</li>
+                </ul>
+            </div>
+
+            <form method="POST" style="margin-top: 30px;">
+                <button type="submit"
+                    style="background: var(--gold); color: #000; border: none; padding: 15px 30px; font-size: 1.1em; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                    🚀 Start Retraining
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

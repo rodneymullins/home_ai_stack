@@ -86,6 +86,16 @@ services:
         url: "http://192.168.1.176:9696"
         target: "_blank"
 
+  - name: "Cloud & Storage"
+    icon: "fas fa-cloud"
+    items:
+      - name: "Nextcloud"
+        logo: "assets/icons/nextcloud.png"
+        subtitle: "File Sync & Share"
+        tag: "cloud"
+        url: "http://192.168.1.211"
+        target: "_blank"
+
   - name: "Artificial Intelligence"
     icon: "fas fa-robot"
     items:
@@ -96,16 +106,16 @@ services:
         url: "http://192.168.1.211:3000"
         target: "_blank"
 
-      - name: "Exo Cluster"
+      - name: "Exo M4 Mac"
         logo: "assets/icons/exo.png"
-        subtitle: "Distributed AI"
+        subtitle: "Fast GPU Inference"
         tag: "ai"
-        url: "http://192.168.1.211:8000"
+        url: "http://192.168.1.18:52415"
         target: "_blank"
 
-      - name: "Ollama API"
+      - name: "Ollama (Gandalf)"
         logo: "assets/icons/ollama.png"
-        subtitle: "LLM Inference"
+        subtitle: "Heavy CPU Models"
         tag: "ai"
         url: "http://192.168.1.211:11434"
         target: "_blank"
@@ -149,6 +159,13 @@ services:
         url: "http://192.168.1.176:8123"
         target: "_blank"
 
+      - name: "TubeArchivist"
+        logo: "assets/icons/tubearchivist.png"
+        subtitle: "YouTube Archive"
+        tag: "media"
+        url: "http://192.168.1.176:3337"
+        target: "_blank"
+
       - name: "Uptime Kuma"
         logo: "assets/icons/uptime-kuma.svg"
         subtitle: "Service Monitoring"
@@ -159,16 +176,9 @@ services:
   - name: "System Monitoring"
     icon: "fas fa-chart-line"
     items:
-      - name: "Heimdall Netdata"
+      - name: "Netdata (Gandalf)"
         logo: "assets/icons/netdata.svg"
-        subtitle: "Heimdall Metrics"
-        tag: "monitoring"
-        url: "http://192.168.1.176:19999"
-        target: "_blank"
-        
-      - name: "Thor Netdata"
-        logo: "assets/icons/netdata.svg"
-        subtitle: "Thor Metrics"
+        subtitle: "System Metrics"
         tag: "monitoring"
         url: "http://192.168.1.211:19999"
         target: "_blank"

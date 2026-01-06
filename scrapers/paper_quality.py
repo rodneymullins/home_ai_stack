@@ -67,7 +67,7 @@ def calculate_quality_score(paper_data):
 
 # Quality thresholds for filtering
 QUALITY_THRESHOLDS = {
-    'minimum_score': 0.0,  # Temporarily disabled for testing - will be 3.0
+    'minimum_score': 3.0,  # Production threshold - filters low-quality preprints
     'high_quality': 6.0,   # Flag papers >= 6 as high quality
     'premium': 8.0         # Premium papers >= 8
 }

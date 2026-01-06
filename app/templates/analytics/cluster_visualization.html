@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cluster Visualization</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+    <style>
+        .viz-container {
+            background: rgba(26, 26, 26, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+        <h1 class="text-center mb-4" style="font-family: 'Cinzel', serif; color: var(--gold);">🎯 ML Cluster
+            Visualization</h1>
+        <p class="text-center" style="color: #888; margin-bottom: 30px;">
+            Interactive scatter plot showing {{ rankings|length }} machines clustered by behavior patterns
+        </p>
+
+        <div class="viz-container">
+            <div id="scatter" style="width: 100%; height: 600px;"></div>
+        </div>
+
+        <div class="viz-container mt-4">
+            <h3 style="color: var(--gold); margin-bottom: 20px; font-family: 'Cinzel', serif;">📊 JVI Distribution</h3>
+            <div id="histogram" style="width: 100%; height: 400px;"></div>
+        </div>
+
+        <div class="card p-4 mt-4"
+            style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+            <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">📊 Cluster Legend</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <div style="padding: 15px; background: rgba(255, 107, 107, 0.1); border-left: 4px solid #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">💰 Big Wins</h4>
+                        <p style="font-size: 0.9em; color: #aaa;">High total payout + high avg jackpot</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="padding: 15px; background: rgba(77, 171, 247, 0.1); border-left: 4px solid #4dabf7;">
+                        <h4 style="color: #4dabf7;">🔥 Fast Cycle</h4>
+                        <p style="font-size: 0.9em; color: #aaa;">High hit rate + low hours between hits</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="padding: 15px; background: rgba(32, 201, 151, 0.1); border-left: 4px solid #20c997;">
+                        <h4 style="color: #20c997;">📈 High Volume</h4>
+                        <p style="font-size: 0.9em; color: #aaa;">High hit count, consistent activity</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="padding: 15px; background: rgba(212, 175, 55, 0.1); border-left: 4px solid #d4af37;">
+                        <h4 style="color: #d4af37;">⚖️ Balanced</h4>
+                        <p style="font-size: 0.9em; color: #aaa;">Well-rounded across all metrics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 mt-4"
+            style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+            <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">💡 How to Read This Chart</h3>
+            <ul style="color: #aaa;">
+                <li><strong>X-Axis (Payout Volume):</strong> Normalized total payout - further right = higher total
+                    winnings</li>
+                <li><strong>Y-Axis (Hit Frequency):</strong> Normalized hit rate - higher up = more frequent jackpots
+                </li>
+                <li><strong>Bubble Size:</strong> Average jackpot amount - larger bubbles = bigger average wins</li>
+                <li><strong>Color:</strong> ML cluster assignment based on behavior patterns</li>
+                <li><strong>Hover:</strong> See machine name, denomination, JVI scores, and predictions</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const data = {{ rankings| tojson }};
+        const traces = {};
+
+        const clusterColors = {
+            'Big Wins': 'rgb(255,107,107)',
+            'Fast Cycle': 'rgb(77,171,247)',
+            'High Volume': 'rgb(32,201,151)',
+            'Balanced': 'rgb(212,175,55)'
+        };
+
+        data.forEach(m => {
+            const cluster = m.ml_cluster || 'Balanced';
+
+            if (!traces[cluster]) {
+                traces[cluster] = {
+                    x: [],
+                    y: [],
+                    mode: 'markers',
+                    name: cluster,
+                    marker: {
+                        size: [],
+                        color: clusterColors[cluster] || 'gray',
+                        opacity: 0.7,
+                        line: {
+                            color: 'white',
+                            width: 1
+                        }
+                    },
+                    text: [],
+                    hovertemplate: '<b>%{text}</b><br>' +
+                        'Location: %{customdata[3]}<br>' +
+                        'Payout Volume: %{x:.1f}<br>' +
+                        'Hit Frequency: %{y:.1f}<br>' +
+                        'JVI: %{customdata[0]}<br>' +
+                        'Predicted: %{customdata[1]}<br>' +
+                        'Growth: %{customdata[2]}<extra></extra>',
+                    customdata: [] // [jvi, predicted, growth, location]
+                };
+            }
+
+            // Push data points
+            traces[cluster].x.push(m.payout_volume_norm || 0);
+            traces[cluster].y.push(m.hit_frequency_norm || 0);
+            traces[cluster].marker.size.push(Math.min(Math.max((m.avg_jackpot_norm || 0) * 50, 10), 50)); // Scale for visibility
+            traces[cluster].text.push(`${m.machine_name} (${m.denomination})`);
+            traces[cluster].customdata.push([
+                m.jvi_balanced,
+                m.predicted_jvi,
+                m.jvi_growth,
+                m.bank // Using bank as location proxy since location_id might be missing in some views
+            ]);
+        });
+
+        const plotData = Object.values(traces);
+
+        const layout = {
+            title: {
+                text: 'Machine Behavior Clusters',
+                font: { color: '#d4af37', size: 24, family: 'Cinzel' }
+            },
+            xaxis: {
+                title: 'Payout Volume (Normalized)',
+                gridcolor: 'rgba(255,255,255,0.1)',
+                color: '#aaa',
+                zerolinecolor: 'rgba(255,255,255,0.2)'
+            },
+            yaxis: {
+                title: 'Hit Frequency (Normalized)',
+                gridcolor: 'rgba(255,255,255,0.1)',
+                color: '#aaa',
+                zerolinecolor: 'rgba(255,255,255,0.2)'
+            },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#f4e8d0' },
+            legend: {
+                bgcolor: 'rgba(0,0,0,0.5)',
+                bordercolor: '#444',
+                borderwidth: 1
+            },
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot('scatter', plotData, layout, { responsive: true, displayModeBar: false });
+
+        // Histogram
+        const jviValues = data.map(m => m.jvi_balanced);
+        const traceHist = {
+            x: jviValues,
+            type: 'histogram',
+            marker: {
+                color: '#d4af37',
+                opacity: 0.7
+            }
+        };
+
+        const layoutHist = {
+            title: {
+                text: 'JVI Score Distribution',
+                font: { color: '#d4af37' }
+            },
+            xaxis: { title: 'JVI Score', color: '#aaa' },
+            yaxis: { title: 'Count', color: '#aaa' },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#f4e8d0' }
+        };
+
+        Plotly.newPlot('histogram', [traceHist], layoutHist, { responsive: true, displayModeBar: false });
+    </script>
+</body>
+
+</html>

@@ -24,8 +24,8 @@ DB_CONFIG = {'database': 'research_papers', 'user': 'rod', 'host': '192.168.1.21
 PDF_STORAGE_PATH = Path('/mnt/raid0/research_papers/pdfs/psyarxiv')
 PDF_STORAGE_PATH.mkdir(parents=True, exist_ok=True)
 
-# PsyArXiv OSF API
-PSYARXIV_API = "https://api.osf.io/v2/preprints/psyarxiv/"
+# PsyArXiv OSF API - Using general preprints endpoint with provider filter
+PSYARXIV_API = "https://api.osf.io/v2/preprints/"
 
 def get_db_connection():
     """Get database connection"""
@@ -62,8 +62,13 @@ def store_paper(conn, preprint_data, pdf_path=None):
         published_date = datetime.fromisoformat(attributes['date_published'].replace('Z', '+00:00')).date()
         
         # Domain categorization
+        # Subjects are nested arrays: [[{id, text}, {id, text}], [...]]
         subjects = attributes.get('subjects', [])
-        subject_names = [s.get('text', '') for s in subjects] if subjects else []
+        subject_names = []
+        if subjects:
+            for subject_group in subjects:
+                if isinstance(subject_group, list):
+                    subject_names.extend([s.get('text', '') for s in subject_group if isinstance(s, dict)])
         
         primary_domain, secondary_domains, topics = categorize_paper(
             title,
@@ -140,6 +145,7 @@ def scrape_psyarxiv_papers(days_back=7, max_results=100):
     date_filter = (datetime.now() - timedelta(days=days_back)).isoformat()
     
     params = {
+        'filter[provider]': 'psyarxiv',  # Filter for PsyArXiv preprints only
         'filter[date_modified][gte]': date_filter,
         'page[size]': min(max_results, 100)  # API max is 100 per page
     }

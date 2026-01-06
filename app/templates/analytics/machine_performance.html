@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Machine Performance Analytics</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-btn" style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">← Back to Dashboard</a>
+        <h1 class="text-center mb-4" style="font-family: 'Cinzel', serif; color: var(--gold);">🎰 Machine Performance Analytics</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card p-4 mb-4" style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">🔥 Hot Machines (48 Hours)</h3>
+                    <div class="table-responsive">
+                        <table class="table table-dark" style="background-color: transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Machine</th>
+                                    <th>Hits</th>
+                                    <th>Avg Payout</th>
+                                    <th>Heat Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in hot_machines[:10] %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ m.location_id }}</span></td>
+                                    <td><a href="/machine/{{ m.machine_name|urlencode }}" style="color: var(--gold); text-decoration: none;">{{ m.machine_name[:40] }}</a></td>
+                                    <td>{{ m.recent_hits }}</td>
+                                    <td style="color: var(--accent);">${{ "{:,.0f}".format(m.avg_payout) }}</td>
+                                    <td><span class="badge bg-danger">{{ m.heat_score }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card p-4 mb-4" style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">💎 Top ROI Machines (30 Days)</h3>
+                    <p style="font-size: 0.85em; color: #888;">ROI = (Frequency × Avg Payout) / 1000</p>
+                    <div class="table-responsive">
+                        <table class="table table-dark" style="background-color: transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Machine</th>
+                                    <th>ROI Score</th>
+                                    <th>Hits</th>
+                                    <th>Avg</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in roi_data[:10] %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ m.location_id }}</span></td>
+                                    <td><a href="/machine/{{ m.machine_name|urlencode }}" style="color: var(--gold); text-decoration: none;">{{ m.machine_name[:40] }}</a></td>
+                                    <td><strong style="color: #00ff9f;">{{ m.roi_score }}</strong></td>
+                                    <td>{{ m.hit_count }}</td>
+                                    <td>${{ "{:,.0f}".format(m.avg_payout) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

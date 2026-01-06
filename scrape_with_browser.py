@@ -8,6 +8,11 @@ from playwright.sync_api import sync_playwright
 import psycopg2
 from datetime import datetime
 import time
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.db_pool import get_db_connection
 import re
 
 def scrape_aristocrat_browser(machine_name, page):
@@ -147,7 +152,7 @@ def scrape_everi_browser(machine_name, page):
 def save_spec_to_db(spec):
     """Save to database"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
         cur = conn.cursor()
         
         cur.execute("""
@@ -182,7 +187,7 @@ def save_spec_to_db(spec):
 
 def main():
     """Run browser-based scraping for all manufacturers"""
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = get_db_connection()
     cur = conn.cursor()
     
     # Get machines from manufacturers that failed with requests

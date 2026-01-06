@@ -1,0 +1,16 @@
+info:
+  name: 'express_agent'
+  description: 'Agent responsible for writing the final report.'
+profile:
+  llm_model:
+    name: 'deepseek_r1_llm'
+    temperature: 0.6
+plan:
+  planner:
+    name: 'rag_planner'
+action:
+  tool: []
+metadata:
+  type: 'AGENT'
+  module: 'agentuniverse.agent.template.react_agent_template'
+  class: 'ReActAgentTemplate'

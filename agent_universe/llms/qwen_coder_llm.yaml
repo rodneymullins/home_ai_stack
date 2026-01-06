@@ -1,0 +1,11 @@
+description: 'Qwen2.5-Coder 7B on Ollama'
+name: 'qwen_coder_llm'
+type: 'OPENAI_STYLE'
+model_name: 'qwen2.5-coder:7b'
+temperature: 0.2
+metadata:
+  type: 'LLM'
+  module: 'agentuniverse.llm.default.default_openai_llm'
+  class: 'DefaultOpenAILLM'
+api_key: 'ollama'
+api_base: 'http://localhost:11434/v1'

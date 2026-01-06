@@ -1,0 +1,11 @@
+description: 'Gemma 3 270M on Ollama'
+name: 'gemma3_270m_llm'
+type: 'OPENAI_STYLE'
+model_name: 'gemma3:270m'
+temperature: 0.0
+metadata:
+  type: 'LLM'
+  module: 'agentuniverse.llm.default.default_openai_llm'
+  class: 'DefaultOpenAILLM'
+api_key: 'ollama'
+api_base: 'http://localhost:11434/v1'

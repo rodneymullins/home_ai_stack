@@ -74,7 +74,7 @@ def save_feedback_to_db(feedback_items):
         return 0
     
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = get_db_connection()
         cur = conn.cursor()
         
         inserted = 0
@@ -121,7 +121,7 @@ def main():
     )
     
     # Get popular machines from database
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = get_db_connection()
     cur = conn.cursor()
     
     cur.execute("""

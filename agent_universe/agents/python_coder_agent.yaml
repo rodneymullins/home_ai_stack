@@ -1,0 +1,16 @@
+info:
+  name: 'python_coder_agent'
+  description: 'Agent specialized in Python code generation and debugging.'
+profile:
+  llm_model:
+    name: 'qwen_coder_llm'
+    temperature: 0.2
+plan:
+  planner:
+    name: 'rag_planner'
+action:
+  tool: []
+metadata:
+  type: 'AGENT'
+  module: 'agentuniverse.agent.template.react_agent_template'
+  class: 'ReActAgentTemplate'

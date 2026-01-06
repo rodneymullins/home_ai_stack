@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Best Time to Play Analysis</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+
+        <h1 class="mb-4 text-center" style="font-family: 'Cinzel', serif; color: var(--gold);">⏰ 24-Hour Jackpot Cycle
+        </h1>
+
+        <!-- Chart -->
+        <div class="card p-3 mb-4" style="background: rgba(26,26,26,0.95); border: 1px solid #444;">
+            <canvas id="hourlyChart" height="100"></canvas>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card p-4" style="background: rgba(26,26,26,0.95); border: 1px solid #444;">
+            <h3 class="mb-3" style="color: var(--gold); font-family: 'Cinzel', serif;">Detailed Hourly Breakdown</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr style="color: var(--gold); border-bottom: 2px solid #555;">
+                            <th>Hour</th>
+                            <th>Hit Frequency</th>
+                            <th>Avg Payout</th>
+                            <th>Max Win Recorded</th>
+                            <th>Total Paid Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr
+                            style="{% if row.hits > (data|map(attribute='hits')|max * 0.8) %}background: rgba(212, 175, 55, 0.15);{% endif %}">
+                            <td style="font-weight: bold;">{{ row.label }}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div
+                                        style="width: 100px; background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px;">
+                                        <div
+                                            style="width: {{ (row.hits / (data|map(attribute='hits')|max) * 100)|int }}%; background: var(--gold); height: 100%; border-radius: 4px;">
+                                        </div>
+                                    </div>
+                                    {{ "{:,}".format(row.hits) }}
+                                </div>
+                            </td>
+                            <td style="color: var(--accent);">${{ "{:,.0f}".format(row.avg) }}</td>
+                            <td>${{ "{:,.0f}".format(row.max) }}</td>
+                            <td>${{ "{:,.0f}".format(row.total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('hourlyChart').getContext('2d');
+        const data = {{ data| tojson }};
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.label),
+                datasets: [
+                    {
+                        label: 'Jackpot Hits',
+                        data: data.map(d => d.hits),
+                        backgroundColor: 'rgba(212, 175, 55, 0.6)',
+                        borderColor: 'rgba(212, 175, 55, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Avg Payout ($)',
+                        data: data.map(d => d.avg),
+                        type: 'line',
+                        borderColor: '#20c997',
+                        pointBackgroundColor: '#20c997',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        title: { display: true, text: 'Number of Jackpots', color: '#888' },
+                        ticks: { color: '#888' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Average Payout ($)', color: '#888' },
+                        ticks: { color: '#888' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#888' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#ccc' } }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

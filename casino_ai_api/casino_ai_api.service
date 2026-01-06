@@ -1,0 +1,15 @@
+[Unit]
+Description=Casino AI Analysis API
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/Users/rod/casino_ai_api
+Environment="OLLAMA_BASE=http://localhost:11434"
+ExecStart=/Users/rod/casino_ai_api/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

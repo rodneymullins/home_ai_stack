@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Casino AI API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+
+        .error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+
+        pre {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        select {
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎰 Casino AI API Tester</h1>
+        <p>Test the Casino AI analysis endpoint powered by Qwen2.5-Coder 7B</p>
+
+        <div>
+            <label for="analysisType"><strong>Analysis Type:</strong></label>
+            <select id="analysisType">
+                <option value="general">General Performance</option>
+                <option value="jackpot_pattern">Jackpot Patterns</option>
+                <option value="performance">Performance Metrics</option>
+                <option value="anomaly">Anomaly Detection</option>
+            </select>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button onclick="runAnalysis()" id="analyzeBtn">Run Analysis</button>
+            <button onclick="checkHealth()">Check API Health</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://192.168.1.18:8081';
+
+        async function checkHealth() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result loading">Checking health...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>✅ API Health Check</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function runAnalysis() {
+            const resultDiv = document.getElementById('result');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const analysisType = document.getElementById('analysisType').value;
+
+            analyzeBtn.disabled = true;
+            resultDiv.innerHTML = '<div class="result loading">Running analysis... (may take up to 2 minutes on first run)</div>';
+
+            const sampleData = {
+                machines: [
+                    {
+                        machine_id: "A-101",
+                        location: "Main Floor",
+                        denomination: 0.25,
+                        jvi: 45.2,
+                        win_rate: 87.5,
+                        recent_jackpots: [1250, 980, 1500]
+                    },
+                    {
+                        machine_id: "B-205",
+                        location: "High Limit",
+                        denomination: 5.0,
+                        jvi: 67.8,
+                        win_rate: 92.3,
+                        recent_jackpots: [5000, 7500]
+                    },
+                    {
+                        machine_id: "C-310",
+                        location: "Main Floor",
+                        denomination: 1.0,
+                        jvi: 32.1,
+                        win_rate: 78.4,
+                        recent_jackpots: [850]
+                    }
+                ],
+                analysis_type: analysisType
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze/slots`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(sampleData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>📊 Analysis Results</h3>
+                        <h4>Summary:</h4>
+                        <p>${result.summary}</p>
+                        
+                        <h4>Key Findings:</h4>
+                        <ul>
+                            ${result.key_findings.map(f => `<li>${f}</li>`).join('')}
+                        </ul>
+                        
+                        <h4>Recommendations:</h4>
+                        <ul>
+                            ${result.recommendations.map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                        
+                        <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(0)}%</p>
+                        
+                        <details>
+                            <summary>Raw JSON</summary>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                        <p><small>Make sure the API server is running on Aragorn (192.168.1.18:8081)</small></p>
+                    </div>
+                `;
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // Auto-check health on load
+        checkHealth();
+    </script>
+</body>
+
+</html>

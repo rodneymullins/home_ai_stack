@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hottest Machines (Frequency)</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+
+        <h1 class="mb-4 text-center" style="font-family: 'Cinzel', serif; color: var(--gold);">🔥 Hottest Machines</h1>
+        <p class="text-center" style="color: #888; margin-top: -10px; margin-bottom: 30px;">Top 100 Machines by Frequent
+            Hits & Speed</p>
+
+        <div class="card p-4"
+            style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead>
+                        <tr style="color: var(--gold); border-bottom: 2px solid #555;">
+                            <th>Rank</th>
+                            <th>Machine Name</th>
+                            <th>Est. Frequency</th>
+                            <th class="text-end">Total Paid Out</th>
+                            <th class="text-end">Avg Win</th>
+                            <th class="text-end">Hits</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in machines %}
+                        <tr style="cursor: pointer;" onclick="window.location='/machine/{{ m.machine_name }}'">
+                            <td>
+                                <div
+                                    style="width: 30px; height: 30px; border-radius: 50%; background: #333; color: #fff; text-align: center; line-height: 30px; font-weight: bold;">
+                                    {{ loop.index }}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: bold; color: {{ m.color|default('#ffffff') }};">{{
+                                    m.machine_name }}</div>
+                                <div style="font-size: 0.8em; color: #666;">{{ m.location_id }}</div>
+                            </td>
+                            <td style="color: var(--accent); font-weight: bold;">
+                                {% if m.days_per_hit > 0 %}
+                                <span title="Days between hits">Every {{ "%.1f"|format(m.days_per_hit) }} days</span>
+                                {% else %}
+                                <span style="color: #666;">Calculating...</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end" style="color: #20c997; font-weight: bold;">${{
+                                "{:,.0f}".format(m.total_payout) }}</td>
+                            <td class="text-end" style="color: #ccc;">${{ "{:,.0f}".format(m.avg_payout) }}</td>
+                            <td class="text-end"><span
+                                    style="background: rgba(255, 107, 107, 0.2); color: #ff6b6b; padding: 2px 8px; border-radius: 10px;">{{
+                                    "{:,}".format(m.hits) }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

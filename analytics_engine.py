@@ -14,6 +14,22 @@ from utils.db_pool import get_db_connection
 DB_CONFIG = {'database': 'postgres', 'user': 'rod'}
 
 def calculate_jvi(machine_name, days=30, mode='balanced'):
+    """
+    Calculate Jackpot Volatility Index (JVI)
+    """
+    conn = get_db_connection()
+    if not conn:
+        return 0.0
+
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("""
+            SELECT 
+                COUNT(*) as hit_count,
+                AVG(amount) as avg_payout,
+                STDDEV(amount) as volatility,
+                MAX(amount) as max_payout,
                 MAX(hit_timestamp) as last_hit,
                 EXTRACT(EPOCH FROM (NOW() - MAX(hit_timestamp)))/86400 as days_since_last
             FROM jackpots

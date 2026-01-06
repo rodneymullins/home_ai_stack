@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ML-Enhanced JVI Rankings</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        .cluster-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .cluster-big {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .cluster-fast {
+            background: #4dabf7;
+            color: white;
+        }
+
+        .cluster-balanced {
+            background: #ffd43b;
+            color: #333;
+        }
+
+        .growth-positive {
+            color: #00ff9f;
+        }
+
+        .growth-negative {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+        <h1 class="text-center mb-4" style="font-family: 'Cinzel', serif; color: var(--gold);">🤖 ML-Enhanced JVI
+            Rankings</h1>
+        <p class="text-center" style="color: #888; margin-bottom: 10px;">Machine Learning predictions with behavioral
+            clustering</p>
+        <p class="text-center" style="color: #666; font-size: 0.9em; margin-bottom: 30px;">Model trained on 278 machines
+            • R² Score: 0.971</p>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card p-3"
+                    style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">⚖️ Balanced JVI</h3>
+                    <p style="font-size: 0.8em; color: #888;">Frequency × Avg × Recency</p>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm" style="background-color: transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>JVI</th>
+                                    <th>Predicted</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in jvi_balanced[:10] %}
+                                <tr>
+                                    <td style="font-size: 0.85em;">
+                                        <strong style="color: var(--gold);">#{{ m.bank }}</strong> -
+                                        {{ m.machine_name[:25] }}
+                                        <span
+                                            class="cluster-badge cluster-{{ m.ml_cluster.lower().replace(' ', '-') }}">
+                                            {{ m.ml_cluster }}
+                                        </span>
+                                    </td>
+                                    <td><strong style="color: #00ff9f;">{{ m.jvi_balanced }}</strong></td>
+                                    <td>
+                                        {{ m.predicted_jvi }}
+                                        <span
+                                            class="{% if m.jvi_growth > 0 %}growth-positive{% else %}growth-negative{% endif %}"
+                                            style="font-size: 0.8em;">
+                                            ({{ "+" if m.jvi_growth > 0 else "" }}{{ m.jvi_growth }})
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card p-3"
+                    style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h3 style="color: #ff6b6b; font-family: 'Cinzel', serif;">💰 Big Payout JVI</h3>
+                    <p style="font-size: 0.8em; color: #888;">Frequency × Max Payout</p>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm" style="background-color: transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>JVI</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in jvi_big[:10] %}
+                                <tr>
+                                    <td style="font-size: 0.85em;">
+                                        <strong style="color: var(--gold);">#{{ m.bank }}</strong> - {{
+                                        m.machine_name[:20] }}
+                                        <span
+                                            class="cluster-badge cluster-{{ m.ml_cluster.lower().replace(' ', '-') }}">
+                                            {{ m.ml_cluster }}
+                                        </span>
+                                    </td>
+                                    <td><strong style="color: #ff6b6b;">{{ m.jvi_big }}</strong></td>
+                                    <td>${{ "{:,.0f}".format(m.max_jackpot) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card p-3"
+                    style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h3 style="color: #20c997; font-family: 'Cinzel', serif;">⚡ Fast Hitter JVI</h3>
+                    <p style="font-size: 0.8em; color: #888;">Frequency² × Avg</p>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm" style="background-color: transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>JVI</th>
+                                    <th>Hits</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in jvi_fast[:10] %}
+                                <tr>
+                                    <td style="font-size: 0.85em;">
+                                        <strong style="color: var(--gold);">#{{ m.bank }}</strong> - {{
+                                        m.machine_name[:20] }}
+                                        <span
+                                            class="cluster-badge cluster-{{ m.ml_cluster.lower().replace(' ', '-') }}">
+                                            {{ m.ml_cluster }}
+                                        </span>
+                                    </td>
+                                    <td><strong style="color: #20c997;">{{ m.jvi_fast }}</strong></td>
+                                    <td>{{ m.frequency }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="mt-4 mb-3"
+            style="color: var(--gold); border-bottom: 1px solid var(--bronze); padding-bottom: 10px; font-family: 'Cinzel', serif;">
+            📊 Denomination Breakdown</h3>
+        <div class="row">
+            <div class="col-12">
+                <div class="card p-3"
+                    style="background: linear-gradient(145deg, #1a1d23, #22262e); border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Denom</th>
+                                    <th>Total Hits</th>
+                                    <th>Avg Payout</th>
+                                    <th>Max Payout</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in denom_stats %}
+                                <tr>
+                                    <td><strong style="color: var(--gold);">{{ d.denom }}</strong></td>
+                                    <td>{{ d.hits }}</td>
+                                    <td style="color: var(--accent);">${{ "{:,.0f}".format(d.avg_payout) }}</td>
+                                    <td>${{ "{:,.0f}".format(d.max_payout) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

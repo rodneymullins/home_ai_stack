@@ -1,0 +1,12 @@
+[Unit]
+Description=Casino AI API - Model Pre-warmer
+After=network.target
+
+[Service]
+Type=oneshot
+User=rod
+WorkingDirectory=/Users/rod/casino_ai_api
+ExecStart=/bin/bash /Users/rod/casino_ai_api/warm_model.sh
+
+[Install]
+WantedBy=multi-user.target

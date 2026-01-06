@@ -326,3 +326,88 @@ def get_hot_banks():
     # Stub for future implementation or missing function
     # print("Warning: get_hot_banks is not implemented yet")
     return []
+
+def get_weekend_stats():
+    """Get aggregate hit stats for weekend vs weekend"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT 
+                is_weekend,
+                COUNT(*) as hits,
+                ROUND(AVG(amount), 2) as avg_payout
+            FROM jackpots
+            WHERE is_weekend IS NOT NULL
+            GROUP BY is_weekend
+        """)
+        return list(cur.fetchall())
+    except Exception as e:
+        print(f"Error fetching weekend stats: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+def get_hourly_details():
+    """Get detailed hourly stats for 24-hour cycle analysis"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get aggregate stats by hour (0-23)
+        cur.execute("""
+            SELECT 
+                EXTRACT(HOUR FROM hit_timestamp) as hour,
+                COUNT(*) as hit_count,
+                AVG(amount) as avg_payout,
+                MAX(amount) as max_payout,
+                SUM(amount) as total_payout
+            FROM jackpots
+            WHERE amount IS NOT NULL
+            GROUP BY EXTRACT(HOUR FROM hit_timestamp)
+            ORDER BY hour
+        """)
+        
+        results = cur.fetchall()
+        hourly_data = {int(r['hour']): r for r in results}
+        
+        complete_data = []
+        for h in range(24):
+            time_label = f"{h-12} PM" if h > 12 else (f"{h} AM" if h > 0 else "12 AM")
+            if h == 12: time_label = "12 PM"
+            
+            if h in hourly_data:
+                row = hourly_data[h]
+                complete_data.append({
+                    'hour': h,
+                    'label': time_label,
+                    'hits': row['hit_count'],
+                    'avg': float(row['avg_payout']),
+                    'max': float(row['max_payout']),
+                    'total': float(row['total_payout'])
+                })
+            else:
+                complete_data.append({
+                    'hour': h,
+                    'label': time_label,
+                    'hits': 0,
+                    'avg': 0,
+                    'max': 0,
+                    'total': 0
+                })
+        
+        return complete_data
+    except Exception as e:
+        print(f"Error getting hourly details: {e}")
+        return []
+    finally:
+        if conn:
+            cur.close()
+            conn.close()

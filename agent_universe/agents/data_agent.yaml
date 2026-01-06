@@ -1,0 +1,17 @@
+info:
+  name: 'data_agent'
+  description: 'Agent responsible for gathering financial data.'
+profile:
+  llm_model:
+    name: 'gemma3_270m_llm'
+    temperature: 0.0
+plan:
+  planner:
+    name: 'rag_planner'
+action:
+  tool:
+    - 'google_search_tool'
+metadata:
+  type: 'AGENT'
+  module: 'agentuniverse.agent.template.react_agent_template'
+  class: 'ReActAgentTemplate'

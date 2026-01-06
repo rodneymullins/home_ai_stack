@@ -1,0 +1,15 @@
+[Unit]
+Description=Exo AI Cluster Node (Official Installation)
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/home/rod/exo
+Environment="PATH=/home/rod/.cargo/bin:/home/rod/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/rod/.local/bin/uv run exo
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

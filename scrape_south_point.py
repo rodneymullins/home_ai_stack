@@ -9,23 +9,10 @@ import psycopg2
 from datetime import datetime
 import time
 import sys
+import os
 
-def get_db_connection():
-    """Try multiple connection methods for PostgreSQL"""
-    configs = [
-        {'database': "postgres", 'user': "rod"},
-        {'database': "postgres", 'user': "rod", 'host': "localhost"},
-        {'database': "postgres", 'user': "rod", 'host': "127.0.0.1"},
-        {'database': "postgres", 'user': "rod", 'host': "192.168.1.211"}
-    ]
-    
-    for config in configs:
-        try:
-            conn = psycopg2.connect(**config, connect_timeout=3)
-            return conn
-        except:
-            continue
-    return None
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.db_pool import get_db_connection
 
 def scrape_south_point(machine_name):
     """Search South Point's slot inventory via their public query form"""

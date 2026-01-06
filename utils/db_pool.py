@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 # Database configuration
 DB_CONFIG = {
     'database': 'postgres',
-    'user': 'rod'
+    'user': 'rod',
+    'host': '192.168.1.211'  # Thor server
 }
 
 # Global connection pool
@@ -121,8 +122,12 @@ def close_all_connections():
             except Exception as e:
                 logger.error(f"❌ Error closing pool connections: {e}")
 
-# Initialize (safe to rely on module import for this singleton in this context)
+# Convenience alias for compatibility
+get_connection = get_db_connection
+
+# Initialize pool on module import (safe singleton pattern)
 try:
     init_connection_pool()
-except Exception:
-    pass
+except Exception as e:
+    logger.warning(f"Connection pool not initialized on import: {e}")
+    logger.info("Pool will be initialized on first use")

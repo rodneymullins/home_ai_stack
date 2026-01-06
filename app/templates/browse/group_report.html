@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ title }}: {{ data.value }}</title>
+    <!-- Styles included via base template or assumed global if linked -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-btn"
+            style="text-decoration: none; color: var(--bronze); font-size: 0.9em; display: inline-block; margin-bottom: 20px;">←
+            Back to Dashboard</a>
+
+        <h1 class="text-center mb-4" style="font-family: 'Cinzel', serif; color: var(--gold);">{{ title }} <span
+                style="color: #fff;">{{ data.value }}</span></h1>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-box"
+                    style="background: rgba(26,26,26,0.8); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #444;">
+                    <div class="stat-val" style="font-size: 1.5em; color: var(--gold);">{{
+                        "{:,}".format(data.stats.hits) }}</div>
+                    <div class="stat-label" style="font-size: 0.8em; color: #aaa;">Total Jackpots</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box"
+                    style="background: rgba(26,26,26,0.8); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #444;">
+                    <div class="stat-val" style="font-size: 1.5em; color: var(--gold);">${{
+                        "{:,.2f}".format(data.stats.avg_payout) }}</div>
+                    <div class="stat-label" style="font-size: 0.8em; color: #aaa;">Average Win</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box"
+                    style="background: rgba(26,26,26,0.8); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #444;">
+                    <div class="stat-val" style="font-size: 1.5em; color: var(--gold);">${{
+                        "{:,.0f}".format(data.stats.max_payout) }}</div>
+                    <div class="stat-label" style="font-size: 0.8em; color: #aaa;">Max Win</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box"
+                    style="background: rgba(26,26,26,0.8); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #444;">
+                    <div class="stat-val" style="font-size: 1.5em; color: var(--gold);">${{
+                        "{:,.0f}".format(data.stats.total_payout) }}</div>
+                    <div class="stat-label" style="font-size: 0.8em; color: #aaa;">Total Paid Out</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card p-3" style="background: #1a1d23; border: 1px solid #333;">
+                    <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">🏆 Top Performing Machines</h3>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>Loc</th>
+                                    <th>Hits</th>
+                                    <th>Avg</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in data.machines %}
+                                <tr onclick="window.location='/machine/{{ m.machine_name }}'" style="cursor: pointer;">
+                                    <td style="color: var(--gold); font-weight: bold;">{{ m.machine_name }}</td>
+                                    <td>{{ m.location_id }}</td>
+                                    <td>{{ "{:,}".format(m.hits) }}</td>
+                                    <td style="color: var(--accent);">${{ "{:,.0f}".format(m.avg_payout) }}</td>
+                                    <td>${{ "{:,.0f}".format(m.max_payout) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3" style="background: #1a1d23; border: 1px solid #333;">
+                    <h3 style="color: var(--gold); font-family: 'Cinzel', serif;">🔥 Recent Activity</h3>
+                    {% for hit in data.recent %}
+                    <div style="padding: 10px; border-bottom: 1px solid #333;">
+                        <div style="font-weight: bold; color: #fff;">${{ "{:,.2f}".format(hit.amount) }}</div>
+                        <div style="font-size: 0.8em; color: var(--gold);">{{ hit.machine_name }}</div>
+                        <div style="font-size: 0.75em; color: #888;">{{ hit.hit_timestamp }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
