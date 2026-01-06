@@ -5318,6 +5318,14 @@ if __name__ == '__main__':
     init_jackpot_table()
     cleanup_jackpot_data()
     
+    # Register iframe section routes
+    try:
+        from dashboard_iframes import register_iframe_routes
+        register_iframe_routes(app)
+        print("✅ Iframe section routes registered")
+    except Exception as e:
+        print(f"⚠️ Could not register iframe routes: {e}")
+    
     # Multi-casino jackpots route
     @app.route('/multi-casino')
     def multi_casino():

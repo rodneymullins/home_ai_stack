@@ -56,38 +56,6 @@ IFRAME_STYLES = """
     .machine-name { font-weight: 700; color: var(--gold); margin-bottom: 5px; font-size: 0.95em; }
     .machine-stats { display: flex; justify-content: space-between; font-size: 0.85em; color: rgba(244, 232, 208, 0.9); }
     .machine-detail { font-size: 0.75em; color: rgba(244, 232, 208, 0.7); margin-top: 3px; }
-    a { color: var(--gold); text-decoration: none; border-bottom: 1px dotted var(--gold); }
-    a:hover { color: #fff; border-color: #fff; }
-    .trend-heating { color: #ff6b6b; }
-    .trend-cooling { color: #4dabf7; }
-    .trend-stable { color: #ffd43b; }
-    .area-code { 
-        display: inline-block;
-        padding: 3px 10px;
-        background: linear-gradient(135deg, var(--gold), var(--bronze));
-        border-radius: 4px;
-        font-family: 'Cinzel', serif;
-        font-weight: 700;
-        font-size: 0.9em;
-        color: #1a0f0a;
-        cursor: pointer;
-    }
-    .section-header { 
-        border-bottom: 2px solid var(--gold); 
-        padding-bottom: 8px; 
-        margin-bottom: 15px;
-        font-size: 1.2em;
-    }
-    .jackpot-feed-item {
-        padding: 10px;
-        margin: 6px 0;
-        background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent);
-        border-left: 3px solid var(--accent);
-        border-radius: 3px;
-    }
-    .amount-large { color: #ff6b6b; font-weight: 700; }
-    .amount-medium { color: var(--accent); font-weight: 600; }
-    .amount-small { color: var(--parchment); }
 </style>
 """
 
@@ -131,7 +99,7 @@ def register_iframe_routes(app):
                 GROUP BY machine_name, denomination
                 HAVING COUNT(*) >= 2 
                     AND COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') > 0
-                ORDER BY hits_7d * AVG(amount) DESC
+                ORDER BY COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') * AVG(amount) DESC
                 LIMIT 5
             """)
             machines = [dict(row) for row in cur.fetchall()]
@@ -139,12 +107,12 @@ def register_iframe_routes(app):
             cur.close()
             conn.close()
             
-            template = f"""
-            <!DOCTYPE html>
+            # Build template with proper concatenation
+            html = """<!DOCTYPE html>
             <html>
             <head>
                 <meta http-equiv="refresh" content="120">
-                {IFRAME_STYLES}
+                """ + IFRAME_STYLES + """
             </head>
             <body>
                 <h3 class="section-header">👑 HIGH LIMIT ROOM</h3>
@@ -152,39 +120,38 @@ def register_iframe_routes(app):
                 
                 <div class="stat-grid">
                     <div class="stat-box">
-                        <div class="stat-value">{{{{ "{:,}".format({stats['count']}) }}}}</div>
+                        <div class="stat-value">""" + "{:,}".format(stats['count']) + """</div>
                         <div class="stat-label">Total Hits</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${{{{ "{:,.0f}".format({stats['avg']}) }}}}</div>
+                        <div class="stat-value">$""" + "{:,.0f}".format(stats['avg']) + """</div>
                         <div class="stat-label">Avg Payout</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${{{{ "{:,.0f}".format({stats['max']}) }}}}</div>
+                        <div class="stat-value">$""" + "{:,.0f}".format(stats['max']) + """</div>
                         <div class="stat-label">Max Hit</div>
                     </div>
                 </div>
                 
                 <h4 style="font-size: 0.95em; margin: 20px 0 10px 0; color: var(--gold);">⭐ Hot High-Limit Machines (Last 7 Days)</h4>
-                {{% for m in machines %}}
-                <div class="machine-item" onclick="window.parent.location.href='/machine/{{{{ m.machine_name }}}}'">
-                    <div class="machine-name">{{{{ m.machine_name[:35] }}}}</div>
+                {% for m in machines %}
+                <div class="machine-item" onclick="window.parent.location.href='/machine/{{ m.machine_name }}'">
+                    <div class="machine-name">{{ m.machine_name[:35] }}</div>
                     <div class="machine-stats">
-                        <span>{{{{ m.denomination }}}}</span>
-                        <span style="color: var(--accent); font-weight: 700;">${{{{ "{:,.0f}".format(m.avg_payout) }}}}</span>
+                        <span>{{ m.denomination }}</span>
+                        <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">{{{{ m.hits_7d }}}} hits last week • Max: ${{{{ "{:,.0f}".format(m.max_payout) }}}}</div>
+                    <div class="machine-detail">{{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
-                {{% endfor %}}
+                {% endfor %}
                 
                 <div style="text-align: center; margin-top: 15px; font-size: 0.75em; color: rgba(244, 232, 208, 0.5);">
                     Updates every 2 minutes
                 </div>
             </body>
-            </html>
-            """
+            </html>"""
             
-            return render_template_string(template, machines=machines)
+            return render_template_string(html, machines=machines)
             
         except Exception as e:
             return f"Error: {e}", 500
@@ -228,38 +195,19 @@ def register_iframe_routes(app):
                 GROUP BY machine_name, denomination
                 HAVING COUNT(*) >= 3
                     AND COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') > 0
-                ORDER BY hits_7d * AVG(amount) DESC
+                ORDER BY COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '7 days') * AVG(amount) DESC
                 LIMIT 5
             """)
             machines = [dict(row) for row in cur.fetchall()]
             
-            # Area breakdown
-            cur.execute("""
-                SELECT
-                    SUBSTRING(location_id, 1, 2) as area_code,
-                    COUNT(*) as hit_count,
-                    ROUND(AVG(amount), 2) as avg_payout,
-                    COUNT(*) FILTER (WHERE hit_timestamp > NOW() - INTERVAL '24 hours') as hits_24h
-                FROM jackpots
-                WHERE amount < 10000
-                    AND machine_name NOT ILIKE '%Poker%'
-                    AND machine_name NOT ILIKE '%Keno%'
-                GROUP BY area_code
-                HAVING COUNT(*) >= 10
-                ORDER BY hits_24h DESC, avg_payout DESC
-                LIMIT 8
-            """)
-            areas = [dict(row) for row in cur.fetchall()]
-            
             cur.close()
             conn.close()
             
-            template = f"""
-            <!DOCTYPE html>
+            html = """<!DOCTYPE html>
             <html>
             <head>
                 <meta http-equiv="refresh" content="120">
-                {IFRAME_STYLES}
+                """ + IFRAME_STYLES + """
             </head>
             <body>
                 <h3 class="section-header">🎰 REGULAR FLOOR</h3>
@@ -267,51 +215,40 @@ def register_iframe_routes(app):
                 
                 <div class="stat-grid">
                     <div class="stat-box">
-                        <div class="stat-value">{{{{ "{:,}".format({stats['count']}) }}}}</div>
+                        <div class="stat-value">""" + "{:,}".format(stats['count']) + """</div>
                         <div class="stat-label">Total Hits</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${{{{ "{:,.0f}".format({stats['avg']}) }}}}</div>
+                        <div class="stat-value">$""" + "{:,.0f}".format(stats['avg']) + """</div>
                         <div class="stat-label">Avg Payout</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${{{{ "{:,.0f}".format({stats['max']}) }}}}</div>
+                        <div class="stat-value">$""" + "{:,.0f}".format(stats['max']) + """</div>
                         <div class="stat-label">Max Hit</div>
                     </div>
                 </div>
                 
                 <h4 style="font-size: 0.95em; margin: 20px 0 10px 0; color: var(--gold);">⭐ Hot Machines (Last 7 Days)</h4>
-                {{% for m in machines %}}
-                <div class="machine-item" onclick="window.parent.location.href='/machine/{{{{ m.machine_name }}}}'">
-                    <div class="machine-name">{{{{ m.machine_name[:35] }}}}</div>
+                {% for m in machines %}
+                <div class="machine-item" onclick="window.parent.location.href='/machine/{{ m.machine_name }}'">
+                    <div class="machine-name">{{ m.machine_name[:35] }}</div>
                     <div class="machine-stats">
-                        <span>{{{{ m.denomination }}}}</span>
-                        <span style="color: var(--accent); font-weight: 700;">${{{{ "{:,.0f}".format(m.avg_payout) }}}}</span>
+                        <span>{{ m.denomination }}</span>
+                        <span style="color: var(--accent); font-weight: 700;">${{ "{:,.0f}".format(m.avg_payout) }}</span>
                     </div>
-                    <div class="machine-detail">{{{{ m.hits_7d }}}} hits last week • Max: ${{{{ "{:,.0f}".format(m.max_payout) }}}}</div>
+                    <div class="machine-detail">{{ m.hits_7d }} hits last week • Max: ${{ "{:,.0f}".format(m.max_payout) }}</div>
                 </div>
-                {{% endfor %}}
-                
-                <h4 style="font-size: 0.95em; margin: 25px 0 10px 0; color: var(--gold);">📍 Hot Areas (Last 24h)</h4>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                    {{% for area in areas %}}
-                    <div class="area-code" onclick="window.parent.location.href='/area/{{{{ area.area_code }}}}'">
-                        {{{{ area.area_code }}}} • {{{{ area.hits_24h }}}} hits • ${{{{ "{:,.0f}".format(area.avg_payout) }}}}
-                    </div>
-                    {{% endfor %}}
-                </div>
+                {% endfor %}
                 
                 <div style="text-align: center; margin-top: 15px; font-size: 0.75em; color: rgba(244, 232, 208, 0.5);">
                     Updates every 2 minutes
                 </div>
             </body>
-            </html>
-            """
+            </html>"""
             
-            return render_template_string(template, machines=machines, areas=areas)
+            return render_template_string(html, machines=machines)
             
         except Exception as e:
             return f"Error: {e}", 500
     
-    # Continue in next file due to length...
     return app
