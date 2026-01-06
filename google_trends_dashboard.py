@@ -1770,7 +1770,7 @@ HTML_TEMPLATE = """
 
                             <!-- High Limit Room -->
                             <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.05)); padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 2px solid gold;">
-                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.2em; color: gold; margin-bottom: 5px; text-align: center; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">👑 HIGH LIMIT ROOM 👑</h3>
+                                <h3 style="font-family: .Cinzel., serif; font-size: 1.2em; margin-bottom: 5px; text-align: center; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);" onclick="window.open(./section/high-limit., ._blank.)" style="cursor: pointer;"><a href="/section/high-limit" target="_blank" style="color: gold; text-decoration: none;">�� HIGH LIMIT ROOM 👑 ↗</a></h3>
                                 <p style="font-size: 0.75em; color: rgba(244, 232, 208, 0.8); text-align: center; margin-bottom: 15px;">
                                     HD Floor Location • <a href="/zone/HD" style="color: #00ff9f; text-decoration: underline;">View Report</a>
                                 </p>
@@ -1809,7 +1809,7 @@ HTML_TEMPLATE = """
                             
                             <!-- Regular Floor Stats -->
                             <div style="background: linear-gradient(135deg, rgba(32, 201, 151, 0.2), rgba(32, 201, 151, 0.05)); padding: 15px; border-radius: 8px; margin-top: 25px; border: 2px solid #20c997;">
-                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.2em; color: #20c997; margin-bottom: 5px; text-align: center; text-shadow: 0 0 10px rgba(32, 201, 151, 0.5);">🎰 REGULAR FLOOR 🎰</h3>
+                                <h3 style="font-family: .Cinzel., serif; font-size: 1.2em; margin-bottom: 5px; text-align: center; text-shadow: 0 0 10px rgba(32, 201, 151, 0.5);" onclick="window.open(./section/regular-floor., ._blank.)" style="cursor: pointer;"><a href="/section/regular-floor" target="_blank" style="color: #20c997; text-decoration: none;">🎰 REGULAR FLOOR 🎰 ↗</a></h3>
                                 <p style="font-size: 0.75em; color: rgba(244, 232, 208, 0.8); text-align: center; margin-bottom: 15px;">
                                     All Non-HD Locations • Regular Floor Machines
                                 </p>
