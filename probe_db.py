@@ -1,10 +1,12 @@
 
 import psycopg2
 import sys
+from config import DB_CONFIG
 
-hosts = [None, 'localhost', '127.0.0.1', '192.168.1.211']  # Thor's actual IP
-user = 'rod'
-dbname = 'postgres'
+# Probe multiple hosts - use config as primary
+hosts = [DB_CONFIG.get('host'), None, 'localhost', '127.0.0.1']
+user = DB_CONFIG.get('user', 'rod')
+dbname = DB_CONFIG.get('database', 'postgres')
 
 print("Probing DB connections...")
 

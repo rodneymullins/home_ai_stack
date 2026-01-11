@@ -1,0 +1,247 @@
+<!-- Additional Tabs for Service Integration -->
+<!-- Add these tabs to the nav-tabs section -->
+
+<li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#kalshi" type="button">
+        📈 Kalshi Trading
+    </button>
+</li>
+
+<li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#wealth" type="button">
+        💎 Wealth
+    </button>
+</li>
+
+<li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#services" type="button">
+        🔧 Services
+    </button>
+</li>
+
+<!-- Add these tab panes to the tab-content section -->
+
+<!-- Kalshi Trading Tab -->
+<div class="tab-pane fade" id="kalshi">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">📈 Kalshi Trading Bot</h2>
+
+            <!-- Bot Status -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <strong>Status:</strong> <span id="kalshi-status">Checking...</span> |
+                        <strong>Last Update:</strong> <span id="kalshi-last-update">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Embedded Dashboard -->
+            <div class="row">
+                <div class="col-md-12">
+                    <iframe src="http://192.168.1.18:8082"
+                        style="width: 100%; height: 800px; border: 2px solid var(--gold); border-radius: 8px;"
+                        frameborder="0">
+                    </iframe>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <a href="http://192.168.1.18:8082" target="_blank" class="btn btn-outline-warning">
+                        Open Full Dashboard →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Wealth Dashboard Tab -->
+<div class="tab-pane fade" id="wealth">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">💎 Legacy Wealth Dashboard</h2>
+
+            <!-- Wealth Overview -->
+            <div class="row mb-4" id="wealth-summary">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h6>Total Net Worth</h6>
+                        <h3 id="wealth-networth">$0</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h6>7-Day Change</h6>
+                        <h3 id="wealth-change">$0</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h6>Accounts</h6>
+                        <h3 id="wealth-accounts">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <h6>FIRE Progress</h6>
+                        <h3 id="wealth-fire">0%</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Embedded Dashboard -->
+            <div class="row">
+                <div class="col-md-12">
+                    <iframe src="http://192.168.1.211:8005/wealth"
+                        style="width: 100%; height: 800px; border: 2px solid var(--gold); border-radius: 8px;"
+                        frameborder="0">
+                    </iframe>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <a href="http://192.168.1.211:8005/wealth" target="_blank" class="btn btn-outline-warning">
+                        Open Full Dashboard →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Services Tab -->
+<div class="tab-pane fade" id="services">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">🔧 Running Services</h2>
+
+            <div class="row" id="services-status">
+                <!-- Casino Dashboard -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>🎰 Casino Dashboard</h5>
+                        <p><strong>Port:</strong> 8004</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                        <a href="http://192.168.1.211:8004" target="_blank"
+                            class="btn btn-sm btn-outline-primary">Open</a>
+                    </div>
+                </div>
+
+                <!-- Wealth Dashboard -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>💎 Wealth Dashboard</h5>
+                        <p><strong>Port:</strong> 8005</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                        <a href="http://192.168.1.211:8005" target="_blank"
+                            class="btn btn-sm btn-outline-primary">Open</a>
+                    </div>
+                </div>
+
+                <!-- Kalshi Bot -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>📈 Kalshi Bot</h5>
+                        <p><strong>Port:</strong> 8082 (Aragorn)</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                        <a href="http://192.168.1.18:8082" target="_blank"
+                            class="btn btn-sm btn-outline-primary">Open</a>
+                    </div>
+                </div>
+
+                <!-- BitNet API -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>🤖 BitNet XL API</h5>
+                        <p><strong>Port:</strong> 8083 (Aragorn)</p>
+                        <p id="bitnet-status"><strong>Status:</strong> <span class="badge bg-warning">Checking...</span>
+                        </p>
+                        <a href="http://192.168.1.18:8083/health" target="_blank"
+                            class="btn btn-sm btn-outline-primary">Health</a>
+                    </div>
+                </div>
+
+                <!-- Open Web UI -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>💬 Open Web UI</h5>
+                        <p><strong>Port:</strong> 8080 (Aragorn)</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                        <a href="http://192.168.1.18:8080" target="_blank"
+                            class="btn btn-sm btn-outline-primary">Open</a>
+                    </div>
+                </div>
+
+                <!-- Media Stack (Legolas) -->
+                <div class="col-md-4 mb-3">
+                    <div class="service-card">
+                        <h5>🎬 Media Stack</h5>
+                        <p><strong>Server:</strong> Legolas</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                        <div class="btn-group-vertical" role="group" style="width: 100%;">
+                            <a href="http://192.168.1.176:9696" target="_blank"
+                                class="btn btn-sm btn-outline-primary">Prowlarr</a>
+                            <a href="http://192.168.1.176:8989" target="_blank"
+                                class="btn btn-sm btn-outline-primary">Sonarr</a>
+                            <a href="http://192.168.1.176:7878" target="_blank"
+                                class="btn btn-sm btn-outline-primary">Radarr</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Check BitNet status
+    async function checkBitNetStatus() {
+        try {
+            const response = await fetch('http://192.168.1.18:8083/health');
+            const data = await response.json();
+
+            if (data.status === 'healthy') {
+                document.getElementById('bitnet-status').innerHTML =
+                    '<strong>Status:</strong> <span class="badge bg-success">Healthy</span>';
+            } else {
+                document.getElementById('bitnet-status').innerHTML =
+                    '<strong>Status:</strong> <span class="badge bg-danger">Unhealthy</span>';
+            }
+        } catch (error) {
+            document.getElementById('bitnet-status').innerHTML =
+                '<strong>Status:</strong> <span class="badge bg-danger">Offline</span>';
+        }
+    }
+
+    // Load on Services tab activation
+    document.querySelector('[data-bs-target="#services"]')?.addEventListener('shown.bs.tab', checkBitNetStatus);
+</script>
+
+<style>
+    .service-card {
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05));
+        border: 2px solid rgba(212, 175, 55, 0.3);
+        border-radius: 8px;
+        min-height: 180px;
+    }
+
+    .service-card h5 {
+        color: var(--gold);
+        margin-bottom: 15px;
+    }
+
+    .service-card p {
+        color: var(--parchment);
+        margin-bottom: 8px;
+    }
+
+    .service-card .btn {
+        margin-top: 10px;
+    }
+</style>

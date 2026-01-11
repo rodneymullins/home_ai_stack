@@ -3,10 +3,11 @@
 Expand field lengths in slot_machines table
 """
 import psycopg2
+from config import DB_CONFIG
 
 
 try:
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     
     print("Expanding field lengths...")

@@ -4,6 +4,8 @@ Script to add Tabler dashboard routes to google_trends_dashboard.py
 Run this to integrate the new dashboard
 """
 import sys
+import os
+from config import DB_CONFIG
 
 def add_tabler_routes():
     print("Adding Tabler dashboard routes to google_trends_dashboard.py...")
@@ -52,11 +54,11 @@ def add_tabler_routes():
         f.writelines(lines)
     
     print("✅ Successfully added Tabler dashboard!")
-    print("📊 Access at: http://192.168.1.211:8004/jackpots")
-    print()
+    print(f"3. Visit http://{DB_CONFIG['host']}:8004/jackpots to verify")
+    print(f"4. Visit http://{DB_CONFIG['host']}:8004/ to see the new button")
     print("Next steps:")
-    print("1. scp google_trends_dashboard.py rod@192.168.1.211:/home/rod/home_ai_stack/")
-    print("2. ssh rod@192.168.1.211 'sudo systemctl restart google-trends.service'")
+    print(f"1. scp google_trends_dashboard.py rod@{DB_CONFIG['host']}:/home/rod/home_ai_stack/")
+    print(f"2. ssh rod@{DB_CONFIG['host']} 'sudo systemctl restart google-trends.service'")
     return True
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ except ImportError:
     logger.warning("PyTorch not available - falling back to Linear Regression")
 
 # Database configuration
-DB_CONFIG = {'database': 'postgres', 'user': 'rod'}
+from config import DB_CONFIG
 
 # Model paths
 MODEL_DIR = '/home/rod/home_ai_stack/jvi_models'
@@ -133,8 +133,8 @@ def get_training_data():
                 COALESCE(n_total, 0) AS n_total,
                 COALESCE(n_avg, 0) AS n_avg,
                 COALESCE(n_rate, 0) AS n_rate,
-                -- Calculate JVI as target
-                total_payout * (COALESCE(n_total, 0) + COALESCE(n_avg, 0) + COALESCE(n_rate, 0)) / 3.0 AS jvi_balanced
+                -- Calculate JVI as target (Frequency-Weighted: n_rate 50%, n_total 25%, n_avg 25%)
+                total_payout * (0.25 * COALESCE(n_total, 0) + 0.25 * COALESCE(n_avg, 0) + 0.50 * COALESCE(n_rate, 0)) AS jvi_balanced
             FROM normals
             WHERE total_payout > 0
         """)
@@ -449,12 +449,12 @@ def get_ml_enhanced_rankings(limit=50, sort_by='balanced'):
                 ROUND(COALESCE(n_avg, 0), 6) AS n_avg,
                 ROUND(COALESCE(n_rate, 0), 6) AS n_rate,
                 ROUND(COALESCE(n_invgap, 0), 6) AS n_invgap,
-                ROUND(total_payout * (COALESCE(n_total, 0) + COALESCE(n_avg, 0) + COALESCE(n_rate, 0) + COALESCE(n_invgap, 0))/4, 2) AS jvi_balanced,
+                ROUND(total_payout * (0.25 * COALESCE(n_total, 0) + 0.25 * COALESCE(n_avg, 0) + 0.50 * COALESCE(n_rate, 0) + 0.25 * COALESCE(n_invgap, 0)), 2) AS jvi_balanced,
                 ROUND(COALESCE(n_total, 0) + 0.5 * COALESCE(n_avg, 0), 4) AS jvi_big,
                 ROUND(COALESCE(n_rate, 0) + 0.7 * COALESCE(n_invgap, 0), 4) AS jvi_fast
             FROM normals
             ORDER BY 
-                CASE WHEN %s = 'balanced' THEN total_payout * (COALESCE(n_total, 0) + COALESCE(n_avg, 0) + COALESCE(n_rate, 0) + COALESCE(n_invgap, 0))
+                CASE WHEN %s = 'balanced' THEN total_payout * (0.25 * COALESCE(n_total, 0) + 0.25 * COALESCE(n_avg, 0) + 0.50 * COALESCE(n_rate, 0) + 0.25 * COALESCE(n_invgap, 0))
                      WHEN %s = 'big' THEN (COALESCE(n_total, 0) + COALESCE(n_avg, 0))
                      WHEN %s = 'fast' THEN (COALESCE(n_rate, 0) + COALESCE(n_invgap, 0))
                 END DESC

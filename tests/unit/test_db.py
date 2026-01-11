@@ -1,14 +1,11 @@
 import psycopg2
-try:
-    conn = psycopg2.connect(database='postgres', user='rod')
-    print("Default connect success")
-    conn.close()
-except Exception as e:
-    print(f"Default connect failed: {e}")
+import sys
+sys.path.insert(0, '../..')
+from config import DB_CONFIG
 
 try:
-    conn = psycopg2.connect(database='postgres', user='rod', host='localhost')
-    print("Localhost connect success")
+    conn = psycopg2.connect(**DB_CONFIG)
+    print("Config connect success")
     conn.close()
 except Exception as e:
-    print(f"Localhost connect failed: {e}")
+    print(f"Config connect failed: {e}")

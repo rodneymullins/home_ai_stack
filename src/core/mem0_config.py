@@ -1,6 +1,11 @@
 """Official Mem0 configuration for Thor."""
 import os
+import sys
 from mem0 import Memory
+
+# Import centralized config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import GANDALF_IP, OLLAMA_HOST
 
 def create_memory() -> Memory:
     """Create configured Memory instance using Ollama + Neo4j."""
@@ -9,7 +14,7 @@ def create_memory() -> Memory:
             "provider": "ollama",
             "config": {
                 "model": "llama3.1:8b",
-                "ollama_base_url": "http://192.168.1.211:11434",
+                "ollama_base_url": OLLAMA_HOST,
                 "temperature": 0.1
             }
         },
@@ -17,7 +22,7 @@ def create_memory() -> Memory:
             "provider": "ollama",
             "config": {
                 "model": "nomic-embed-text:latest",
-                "ollama_base_url": "http://192.168.1.211:11434"
+                "ollama_base_url": OLLAMA_HOST
             }
         },
         "vector_store": {
@@ -26,7 +31,7 @@ def create_memory() -> Memory:
                 "dbname": "postgres",
                 "user": "postgres",
                 "password": "homeai2025",
-                "host": "192.168.1.211",
+                "host": GANDALF_IP,
                 "port": 5432,
                 "collection_name": "memories"
             }
@@ -34,7 +39,7 @@ def create_memory() -> Memory:
         "graph_store": {
             "provider": "neo4j",
             "config": {
-                "url": "bolt://192.168.1.211:7687",
+                "url": f"bolt://{GANDALF_IP}:7687",
                 "username": "neo4j",
                 "password": os.getenv("NEO4J_PASSWORD", "homeai2025"),
                 "encrypted": False

@@ -1,8 +1,10 @@
 from ollama import Client
+from config import OLLAMA_HOST, DB_CONFIG
 
 try:
-    print("Connecting to Thor (192.168.1.211)...")
-    client = Client(host='http://192.168.1.211:11434')
+    host = DB_CONFIG.get('host', '192.168.1.211')
+    print(f"Connecting to Gandalf ({host})...")
+    client = Client(host=OLLAMA_HOST)
     
     print("Listing models...")
     response = client.list()

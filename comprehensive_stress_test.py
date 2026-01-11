@@ -5,12 +5,14 @@ Tests: PostgreSQL, Neo4j, Redis, Disk I/O, Memory, CPU, Network
 """
 
 import time
+import random
 import psutil
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from datetime import datetime
+from config import DB_CONFIG
 
 class Colors:
     HEADER = '\033[95m'
@@ -37,6 +39,13 @@ def print_result(name, value, unit="", status="info"):
     
     print(f"{color}  ✓ {name}: {value} {unit}{Colors.END}")
 
+def get_pg_connection():
+    try:
+        return psycopg2.connect(**DB_CONFIG['postgresql'])
+    except Exception as e:
+        print_result("PostgreSQL Connection", f"FAILED: {e}", "", "error")
+        return None
+
 # ==============================================================================
 # PostgreSQL Stress Test
 # ==============================================================================
@@ -48,11 +57,9 @@ def test_postgresql():
         
         # Connection test
         start = time.time()
-        conn = psycopg2.connect(
-            host="localhost",
-            database="home_ai_db",
-            user="rod"
-        )
+        conn = get_pg_connection()
+        if conn is None:
+            return None
         conn_time = time.time() - start
         print_result("Connection Time", f"{conn_time*1000:.2f}", "ms", "success")
         
@@ -66,7 +73,7 @@ def test_postgresql():
         print_result("Simple Query Time", f"{query_time*1000:.2f}", "ms", "success")
         
         # Connection pool test
-        pool = SimpleConnectionPool(1, 20, host="localhost", database="home_ai_db", user="rod")
+        pool = SimpleConnectionPool(1, 20, **DB_CONFIG['postgresql'])
         
         def execute_query(i):
             conn = pool.getconn()
@@ -105,7 +112,7 @@ def test_redis():
     try:
         import redis
         
-        r = redis.Redis(host='localhost', port=6379, db=0)
+        r = redis.Redis(**DB_CONFIG['redis'])
         
         # Connection test
         start = time.time()
@@ -147,7 +154,10 @@ def test_neo4j():
     try:
         from neo4j import GraphDatabase
         
-        driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "password"))
+        driver = GraphDatabase.driver(
+            DB_CONFIG['neo4j']['uri'],
+            auth=(DB_CONFIG['neo4j']['user'], DB_CONFIG['neo4j']['password'])
+        )
         
         # Connection test
         start = time.time()

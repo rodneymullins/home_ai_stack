@@ -20,9 +20,10 @@ except ImportError:
     # Fallback if utils not found
     import psycopg2
     from psycopg2.extras import RealDictCursor
-    print("⚠️  Warning: utils.db_pool not found. Using direct connection.")
+    from config import DB_CONFIG
+    print("⚠️  Warning: utils.db_pool not found. Using config.py.")
     def get_db_connection():
-        return psycopg2.connect("dbname=postgres user=rod", cursor_factory=RealDictCursor)
+        return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'

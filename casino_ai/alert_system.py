@@ -5,6 +5,7 @@ Phase 4: Monitors machines and sends alerts when hot machines detected.
 """
 import time
 import psycopg2
+import os
 from datetime import datetime, timedelta
 from typing import List, Dict
 import json
@@ -22,11 +23,10 @@ class HotMachineAlertSystem:
     
     def __init__(self, db_config: Dict = None):
         if db_config is None:
-            db_config = {
-                'host': '192.168.1.211',
-                'database': 'postgres',
-                'user': 'rod'
-            }
+            import sys
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from config import DB_CONFIG
+            db_config = DB_CONFIG
         
         self.db_config = db_config
         self.alert_history = []

@@ -1,14 +1,10 @@
 import psycopg2
+import sys
+sys.path.insert(0, '..')
+from config import DB_CONFIG
 
 try:
-    conn = psycopg2.connect(
-        dbname="postgres",
-        user="postgres",
-        password="homeai2025",
-        host="192.168.1.211",
-        port="5432",
-        connect_timeout=3
-    )
+    conn = psycopg2.connect(**DB_CONFIG, connect_timeout=3)
     print("Success")
     conn.close()
 except Exception as e:

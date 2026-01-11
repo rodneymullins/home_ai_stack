@@ -171,7 +171,7 @@ def main():
     print(f"\n\n✅ COMPLETE! Ingested {len(all_memories)} memories in {total_time:.1f}s")
     print(f"   Categorization: {categorization_time:.1f}s (1 LLM call)")
     print(f"   Avg: {total_time/len(all_memories):.2f}s per memory")
-    print("🔍 Check Neo4j Browser: http://192.168.1.211:7474")
+    print("🔍 Check Neo4j Browser: http://192.168.1.211:7474")  # TODO: Move to config
 
 if __name__ == "__main__":
     main()

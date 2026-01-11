@@ -5,6 +5,7 @@ Downloads stock information from Yahoo Finance and stores in memory.
 """
 
 import yfinance as yf
+from config import DB_CONFIG
 import requests
 import json
 import time
@@ -44,6 +45,15 @@ def fetch_stock_info(ticker):
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+        except Exception as db_e:
+            print(f"❌ Error connecting to database: {db_e}")
+            # Decide how to handle this error: continue without DB, or re-raise
+            # For now, we'll just print and proceed without DB operations if connection fails
+            conn = None
+            cur = None
         
         # Get recent price data
         hist = stock.history(period="1d")
@@ -99,7 +109,7 @@ def main():
                 time.sleep(0.5)  # Rate limiting
     
     print("\n\n✅ Stock data ingestion complete!")
-    print("🔍 Check Neo4j Browser to see the knowledge graph: http://192.168.1.211:7474")
+    print(f"🔍 Check Neo4j Browser to see the knowledge graph: http://{DB_CONFIG['host']}:7474")
 
 if __name__ == "__main__":
     main()

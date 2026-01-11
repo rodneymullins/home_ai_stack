@@ -3,11 +3,14 @@
 Simple test - just verify Mem0 can initialize and we can directly call Exo.
 """
 import requests
+import sys
+sys.path.insert(0, '../..')
+from config import GANDALF_IP
 
 # Test 1: Can we reach Exo?
 print("1️⃣ Testing Exo connectivity...")
 try:
-    response = requests.get("http://192.168.1.211:8000/v1/models", timeout=5)
+    response = requests.get(f"http://{GANDALF_IP}:8000/v1/models", timeout=5)
     if response.status_code == 200:
         models = response.json()
         print(f"   ✅ Exo responding - {len(models.get('data', []))} models available\n")

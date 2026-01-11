@@ -16,23 +16,13 @@ HEADERS = {
 }
 
 def get_db_connection():
-    """Try multiple connection methods for PostgreSQL"""
-    configs = [
-        {'database': "postgres", 'user': "rod"},  # Standard local socket
-        {'database': "postgres", 'user': "rod", 'host': "localhost"},
-        {'database': "postgres", 'user': "rod", 'host': "127.0.0.1"},
-        {'database': "postgres", 'user': "rod", 'host': "192.168.1.211"}  # Thor's actual IP
-    ]
-    
-    for config in configs:
-        try:
-            conn = psycopg2.connect(**config, connect_timeout=3)
-            return conn
-        except:
-            continue
-            
-    print("❌ Could not connect to any PostgreSQL database (socket, localhost, or 192.168.1.211)")
-    return None
+    """Get PostgreSQL connection from centralized config"""
+    from config import DB_CONFIG
+    try:
+        return psycopg2.connect(**DB_CONFIG, connect_timeout=3)
+    except Exception as e:
+        print(f"❌ Could not connect to PostgreSQL: {e}")
+        return None
 
 # ========== SCIENTIFIC GAMES / LIGHT & WONDER ==========
 def scrape_scientific_games(machine_name):

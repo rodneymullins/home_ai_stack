@@ -23,9 +23,10 @@ try:
 except ImportError:
     # Fallback if utils not found (e.g. running standalone without project structure)
     import psycopg2
-    print("⚠️  Warning: utils.db_pool not found. Using direct connection.")
+    from config import DB_CONFIG
+    print("⚠️  Warning: utils.db_pool not found. Using config.py connection.")
     def get_db_connection():
-        return psycopg2.connect("dbname=postgres user=rod")
+        return psycopg2.connect(**DB_CONFIG)
 
 BASE_URL = "https://www.coushattacasinoresort.com/gaming/slot-jackpot-updates/page/{}"
 PAGES = 62

@@ -1,7 +1,8 @@
 from neo4j import GraphDatabase
 import os
+from config import GANDALF_IP
 
-uri = "bolt://192.168.1.211:7687"
+uri = f"bolt://{GANDALF_IP}:7687"
 user = "neo4j"
 password = os.getenv("NEO4J_PASSWORD", "homeai2025")
 

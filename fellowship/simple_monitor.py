@@ -6,8 +6,14 @@ Generates HTML status page that can be served statically or integrated into exis
 
 import json
 import subprocess
+import sys
+import os
 from datetime import datetime
 from pathlib import Path
+
+# Import config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import ARAGORN_IP, GANDALF_IP, LEGOLAS_IP
 
 
 def check_endpoint(url):
@@ -26,13 +32,13 @@ def check_endpoint(url):
 def get_fellowship_status():
     """Get status of all Fellowship endpoints."""
     endpoints = {
-        'Aragorn Open Web UI': 'http://192.168.1.18:8080',
-        'Aragorn Ollama': 'http://192.168.1.18:11434/api/tags',
-        'Aragorn Exo': 'http://192.168.1.18:8000',
-        'Gandalf Dashboard': 'http://192.168.1.211:8004',
-        'Gandalf Ollama': 'http://192.168.1.211:11434/api/tags',
-        'Legolas Nextcloud': 'http://192.168.1.176:8083',
-        'Legolas Jellyfin': 'http://192.168.1.176:8096',
+        'Aragorn Open Web UI': f'http://{ARAGORN_IP}:8080',
+        'Aragorn Ollama': f'http://{ARAGORN_IP}:11434/api/tags',
+        'Aragorn Exo': f'http://{ARAGORN_IP}:8000',
+        'Gandalf Dashboard': f'http://{GANDALF_IP}:8004',
+        'Gandalf Ollama': f'http://{GANDALF_IP}:11434/api/tags',
+        'Legolas Nextcloud': f'http://{LEGOLAS_IP}:8083',
+        'Legolas Jellyfin': f'http://{LEGOLAS_IP}:8096',
     }
     
     status = {}

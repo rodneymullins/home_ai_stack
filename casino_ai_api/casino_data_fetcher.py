@@ -4,15 +4,14 @@ Fetches real slot machine data from Gandalf's PostgreSQL database
 """
 
 import psycopg2
+import sys
+import os
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 
-# Database config (matching existing pool config)
-DB_CONFIG = {
-    'database': 'postgres',
-    'user': 'rod',
-    'host': '192.168.1.211'
-}
+# Import centralized config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import DB_CONFIG
 
 
 def get_db_connection():

@@ -13,12 +13,7 @@ from decimal import Decimal
 import json
 import fire_calculator
 
-# Database connection
-DB_CONFIG = {
-    'database': 'wealth',
-    'user': 'rod',
-    'host': '192.168.1.211'
-}
+from config import DB_CONFIG
 
 def get_db():
     """Get database connection"""

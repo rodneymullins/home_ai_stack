@@ -4,19 +4,14 @@ import psycopg2
 from ollama import Client
 from neo4j import GraphDatabase
 import statistics
+from config import DB_CONFIG, GANDALF_IP, OLLAMA_HOST
 
-# --- Config ---
-THOR_IP = "192.168.1.211"
-OLLAMA_URL = f"http://{THOR_IP}:11434"
+# --- Config (from centralized config) ---
+THOR_IP = GANDALF_IP
+OLLAMA_URL = OLLAMA_HOST
 NEO4J_URI = f"bolt://{THOR_IP}:7687"
 NEO4J_AUTH = ("neo4j", os.getenv("NEO4J_PASSWORD", "homeai2025"))
-PG_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
-    "password": "homeai2025",
-    "host": THOR_IP,
-    "port": 5432
-}
+PG_CONFIG = DB_CONFIG
 
 def benchmark_ollama():
     print(f"\n--- 🤖 Benchmarking Ollama ({OLLAMA_URL}) ---")
@@ -97,7 +92,7 @@ def benchmark_neo4j():
         return None
 
 if __name__ == "__main__":
-    print(f"🚀 Starting System Benchmark for Thor ({THOR_IP})...")
+    print(f"🚀 Starting System Benchmark for Gandalf ({THOR_IP})...")
     
     # Run tests
     ollama_time = benchmark_ollama()

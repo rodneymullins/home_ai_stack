@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.openwebui.8080</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Volumes/Phoenix/rod/openwebui/.venv/bin/open-webui</string>
+        <string>serve</string>
+        <string>--host</string><string>0.0.0.0</string>
+        <string>--port</string><string>8080</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Volumes/Phoenix/rod/openwebui</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Web Search via SearXNG -->
+        <key>ENABLE_RAG_WEB_SEARCH</key>
+        <string>true</string>
+        <key>RAG_WEB_SEARCH_ENGINE</key>
+        <string>searxng</string>
+        <key>SEARXNG_QUERY_URL</key>
+        <string>http://192.168.1.176:8080/search?q=&lt;query&gt;</string>
+        <key>ENABLE_WEB_SEARCH</key>
+        <string>true</string>
+        
+        <!-- RAG Optimizations (v0.7.2 features) -->
+        <key>ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER</key>
+        <string>true</string>
+        <key>RAG_SYSTEM_CONTEXT</key>
+        <string>true</string>
+        <key>CHUNK_MIN_SIZE_TARGET</key>
+        <string>256</string>
+        
+        <!-- Database -->
+        <key>ENABLE_DB_MIGRATIONS</key>
+        <string>true</string>
+        
+        <!-- Ollama Connection (local) -->
+        <key>OLLAMA_BASE_URL</key>
+        <string>http://localhost:11434</string>
+        
+        <!-- Redis Caching (on Gandalf) -->
+        <key>REDIS_URL</key>
+        <string>redis://192.168.1.211:6379/1</string>
+        
+        <!-- Privacy -->
+        <key>SCARF_NO_ANALYTICS</key>
+        <string>true</string>
+        <key>DO_NOT_TRACK</key>
+        <string>true</string>
+        <key>ANONYMIZED_TELEMETRY</key>
+        <string>false</string>
+        <key>ENABLE_COMMUNITY_SHARING</key>
+        <string>false</string>
+        
+        <!-- Native Function Calling (v0.7.2 feature) -->
+        <key>ENABLE_NATIVE_TOOLS</key>
+        <string>true</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/var/log/openwebui/openwebui.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/var/log/openwebui/openwebui.err.log</string>
+
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+
+</dict>
+</plist>

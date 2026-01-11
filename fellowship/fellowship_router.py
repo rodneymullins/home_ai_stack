@@ -6,8 +6,14 @@ Intelligent routing and failover for Ollama endpoints across The Fellowship.
 
 import requests
 import time
+import sys
+import os
 from typing import Optional, Dict, List
 import logging
+
+# Import config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import ARAGORN_IP, GANDALF_IP
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,13 +25,13 @@ class FellowshipRouter:
     def __init__(self):
         self.endpoints = {
             'aragorn': {
-                'url': 'http://192.168.1.18:11434',
+                'url': f'http://{ARAGORN_IP}:11434',
                 'priority': 1,
                 'name': 'Aragorn (AI King)',
                 'models': []  # Will be populated on health check
             },
             'gandalf': {
-                'url': 'http://192.168.1.211:11434',
+                'url': f'http://{GANDALF_IP}:11434',
                 'priority': 2,
                 'name': 'Gandalf (Data Keeper)',
                 'models': []

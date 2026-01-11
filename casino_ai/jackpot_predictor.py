@@ -27,12 +27,11 @@ class JackpotPredictor:
             db_config: PostgreSQL connection config
         """
         if db_config is None:
-            # Match existing casino database config
-            db_config = {
-                'host': '192.168.1.211',
-                'database': 'postgres',
-                'user': 'rod'
-            }
+            # Import centralized config
+            import sys
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from config import DB_CONFIG
+            db_config = DB_CONFIG
         
         self.db_config = db_config
         

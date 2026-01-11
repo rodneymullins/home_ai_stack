@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import psycopg2
+from config import DB_CONFIG
 
 # Try querying with common manufacturers and aggregating results
 manufacturers = ["IGT", "Aristocrat", "Konami", "Scientific Games", "AGS", "Everi", "Ainsworth"]
@@ -39,7 +40,7 @@ print(f"\n\nTotal unique machines found: {len(all_slots)}")
 # Now cross-reference with database
 print("\n=== Cross-referencing with jackpot database ===")
 try:
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     
     # Get distinct machines from jackpots

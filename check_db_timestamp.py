@@ -1,8 +1,10 @@
 
 import psycopg2
 from datetime import datetime
+from config import DB_CONFIG
+
 try:
-    conn = psycopg2.connect(database="postgres", user="rod")
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     
     # Check Max Timestamp

@@ -6,21 +6,16 @@ from neo4j import GraphDatabase
 import concurrent.futures
 import statistics
 import random
+from config import DB_CONFIG
 
 # --- Config ---
 WORKERS = 8 # Hammer with 8 threads
 ITERATIONS = 50 # Per worker
-THOR_IP = "localhost" # To be run ON Thor
+THOR_IP = DB_CONFIG.get('host', 'localhost')  # From centralized config
 OLLAMA_URL = f"http://{THOR_IP}:11434"
 NEO4J_URI = f"bolt://{THOR_IP}:7687"
 NEO4J_AUTH = ("neo4j", os.getenv("NEO4J_PASSWORD", "homeai2025"))
-PG_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
-    "password": "homeai2025",
-    "host": THOR_IP,
-    "port": 5432
-}
+PG_CONFIG = DB_CONFIG  # Use centralized config
 
 def worker_task(worker_id):
     print(f"[{worker_id}] Starting...")

@@ -6,8 +6,11 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 from datetime import datetime
+import sys
+sys.path.insert(0, '..')
+from config import DB_CONFIG
 
-conn = psycopg2.connect(database="postgres", user="rod")
+conn = psycopg2.connect(**DB_CONFIG)
 cur = conn.cursor(cursor_factory=RealDictCursor)
 
 # Find all Double Gold machines
@@ -70,7 +73,6 @@ else:
         max_payout = df['amount'].max()
         
         # Coefficient of Variation (CV) - key volatility indicator
-        # Low: CV < 0.3, Medium: 0.3-0.7, High: > 0.7
         cv = std_dev / avg_payout if avg_payout > 0 else 0
         
         print(f"\n   💰 PAYOUT STATISTICS")

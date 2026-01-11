@@ -3,10 +3,11 @@
 Create database tables for external data enrichment
 """
 import psycopg2
+from config import DB_CONFIG
 
 def create_enrichment_tables():
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
         
         print("Creating machine_specs table...")

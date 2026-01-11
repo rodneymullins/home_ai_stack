@@ -3,10 +3,11 @@
 Initialize slot_machines table in PostgreSQL database
 """
 import psycopg2
+from config import DB_CONFIG
 
 def create_slot_machines_table():
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
         
         # Drop existing table if needed (for clean re-creation)

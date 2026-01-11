@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import psycopg2
 import re
 from datetime import datetime
+from config import DB_CONFIG
 
 # Manufacturers to query
 MANUFACTURERS = ["IGT", "Aristocrat", "Konami", "Scientific Games", "AGS", "Everi", "Ainsworth"]
@@ -106,7 +107,7 @@ def scrape_manufacturer_slots(manufacturer):
 def populate_database(machines):
     """Populate slot_machines table with scraped data"""
     try:
-        conn = psycopg2.connect(database="postgres", user="rod")
+        conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
         
         inserted = 0
