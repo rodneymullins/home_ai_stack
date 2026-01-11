@@ -4,7 +4,7 @@ The Ultimate One Dashboard - Lord of the Rings Theme
 Reorganized with embedded widgets and real-time data
 """
 
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string, jsonify, request
 from pytrends.request import TrendReq
 import pandas as pd
 from datetime import datetime, timedelta
@@ -13,6 +13,14 @@ import requests
 import feedparser
 from bs4 import BeautifulSoup
 import psycopg2
+from psycopg2 import pool
+from config import (
+    DB_CONFIG, GANDALF_IP, ARAGORN_IP, LEGOLAS_IP,
+    OLLAMA_HOST, NEO4J_URL, WEALTH_DASHBOARD_URL,
+    SONARR_URL, RADARR_URL, PROWLARR_URL, PIHOLE_URL, SEARXNG_URL, HOMER_URL,
+    OPEN_WEBUI_URL, NETDATA_GANDALF_URL, NETDATA_LEGOLAS_URL,
+    FIREFLY_URL, GHOSTFOLIO_URL, WENFIRE_URL, PORTAINER_URL, TUBEARCHIVIST_URL
+)
 from psycopg2.extras import RealDictCursor
 import threading
 import time
@@ -61,7 +69,44 @@ except Exception as e:
     cache = MockCache()
 
 # PostgreSQL connection for casino jackpots (Unix socket)
-DB_CONFIG = {'database': 'postgres', 'user': 'rod'}
+# PostgreSQL connection for casino jackpots (Unix socket)
+# DB_CONFIG imported from config.py
+
+# Global Connection Pool
+DB_POOL = None
+
+class PooledConnection:
+    """Wrapper to handle connection pooling transparently"""
+    def __init__(self, pool):
+        self.pool = pool
+        self.conn = pool.getconn()
+        
+    def close(self):
+        """Return connection to pool instead of closing it"""
+        if self.conn:
+            self.pool.putconn(self.conn)
+            self.conn = None
+            
+    def cursor(self, *args, **kwargs):
+        return self.conn.cursor(*args, **kwargs)
+        
+    def commit(self):
+        self.conn.commit()
+        
+    def rollback(self):
+        self.conn.rollback()
+
+    def __getattr__(self, name):
+        return getattr(self.conn, name) # Delegate other methods
+
+def init_db_pool():
+    global DB_POOL
+    if DB_POOL is None:
+        try:
+            print("🔌 Initializing DB Connection Pool (Min: 1, Max: 20)...")
+            DB_POOL = psycopg2.pool.SimpleConnectionPool(1, 20, **DB_CONFIG)
+        except Exception as e:
+            print(f"❌ Failed to init DB Pool: {e}")
 
 # Global cache for jackpots
 jackpot_cache = []
@@ -74,8 +119,10 @@ SHARED_STYLES = """
 """
 
 def get_db_connection():
+    if DB_POOL is None:
+        init_db_pool()
     try:
-        return psycopg2.connect(**DB_CONFIG)
+        return PooledConnection(DB_POOL)
     except Exception as e:
         print(f"DB connection error: {e}")
         return None
@@ -867,38 +914,78 @@ def get_news():
 def get_services():
     return [
         # Media Server
-        {'name': 'Jellyfin', 'icon': '🎬', 'url': 'http://192.168.1.176:8096'},
-        {'name': 'Jellyseerr', 'icon': '📺', 'url': 'http://192.168.1.176:5055'},
-        {'name': 'qBittorrent', 'icon': '⬇️', 'url': 'http://192.168.1.176:8082'},
+        {'name': 'Jellyfin', 'icon': '🎬', 'url': f'http://{LEGOLAS_IP}:8096'},
+        {'name': 'Jellyseerr', 'icon': '📺', 'url': f'http://{LEGOLAS_IP}:5055'},
+        {'name': 'qBittorrent', 'icon': '⬇️', 'url': f'http://{LEGOLAS_IP}:8082'},
         
         # Media Management
-        {'name': 'Sonarr', 'icon': '📡', 'url': 'http://192.168.1.176:8989'},
-        {'name': 'Radarr', 'icon': '🎥', 'url': 'http://192.168.1.176:7878'},
-        {'name': 'Prowlarr', 'icon': '🔍', 'url': 'http://192.168.1.176:9696'},
+        {'name': 'Sonarr', 'icon': '📡', 'url': SONARR_URL},
+        {'name': 'Radarr', 'icon': '🎥', 'url': RADARR_URL},
+        {'name': 'Prowlarr', 'icon': '🔍', 'url': PROWLARR_URL},
         
         # Artificial Intelligence
-        {'name': 'Open Web UI', 'icon': '🤖', 'url': 'http://192.168.1.18:8080'},
-        {'name': 'Exo Cluster', 'icon': '🧠', 'url': 'http://192.168.1.211:8000'},
-        {'name': 'Ollama API', 'icon': '🦙', 'url': 'http://192.168.1.211:11434'},
+        {'name': 'Open Web UI', 'icon': '🤖', 'url': OPEN_WEBUI_URL},
+        {'name': 'Exo Cluster', 'icon': '🧠', 'url': f'http://{GANDALF_IP}:8000'},
+        {'name': 'Ollama API', 'icon': '🦙', 'url': OLLAMA_HOST},
         
         # Network & DNS
-        {'name': 'Pi-hole', 'icon': '🛡️', 'url': 'http://192.168.1.176:8081/admin/'},
-        {'name': 'SearXNG', 'icon': '🔎', 'url': 'http://192.168.1.176:8080'},
+        {'name': 'Pi-hole', 'icon': '🛡️', 'url': PIHOLE_URL},
+        {'name': 'SearXNG', 'icon': '🔎', 'url': SEARXNG_URL},
         
         # Automation & Tools
-        {'name': 'n8n', 'icon': '⚙️', 'url': 'http://192.168.1.176:5678'},
-        {'name': 'Home Assistant', 'icon': '🏠', 'url': 'http://192.168.1.176:8123'},
-        {'name': 'Uptime Kuma', 'icon': '📊', 'url': 'http://192.168.1.176:3001'},
+        {'name': 'n8n', 'icon': '⚙️', 'url': f'http://{LEGOLAS_IP}:5678'},
+        {'name': 'Home Assistant', 'icon': '🏠', 'url': f'http://{LEGOLAS_IP}:8123'},
+        {'name': 'Uptime Kuma', 'icon': '📊', 'url': f'http://{LEGOLAS_IP}:3001'},
         
         # System Monitoring
-        {'name': 'Legolas Netdata', 'icon': '📈', 'url': 'http://192.168.1.176:19999'},
-        {'name': 'Gandalf Netdata', 'icon': '📈', 'url': 'http://192.168.1.211:19999'},
-        {'name': 'Neo4j Browser', 'icon': '🔗', 'url': 'http://192.168.1.211:7474'},
+        {'name': 'Legolas Netdata', 'icon': '📈', 'url': NETDATA_LEGOLAS_URL},
+        {'name': 'Gandalf Netdata', 'icon': '📈', 'url': NETDATA_GANDALF_URL},
+        {'name': 'Neo4j Browser', 'icon': '🔗', 'url': NEO4J_URL},
         
         # Dashboards
-        {'name': 'Homer', 'icon': '🏛️', 'url': 'http://192.168.1.176'},
-        {'name': 'Nextcloud', 'icon': '☁️', 'url': 'http://192.168.1.176:8083'}
+        {'name': 'Homer', 'icon': '🏛️', 'url': HOMER_URL},
+        {'name': 'Nextcloud', 'icon': '☁️', 'url': f'http://{LEGOLAS_IP}:8083'},
+        
+        # Finance Apps (Legolas Docker)
+        {'name': 'Ghostfolio', 'icon': '📈', 'url': GHOSTFOLIO_URL},
+        {'name': 'Firefly III', 'icon': '🔥', 'url': FIREFLY_URL},
+        {'name': 'Wenfire', 'icon': '💰', 'url': WENFIRE_URL},
+        {'name': 'Tube Archivist', 'icon': '📺', 'url': TUBEARCHIVIST_URL},
+        {'name': 'Portainer', 'icon': '🐳', 'url': PORTAINER_URL}
     ]
+
+def get_service_health():
+    """Check health status of all services with HTTP checks."""
+    import concurrent.futures
+    
+    services = [
+        {'name': 'Ghostfolio', 'url': GHOSTFOLIO_URL, 'icon': '📈'},
+        {'name': 'Firefly III', 'url': FIREFLY_URL, 'icon': '🔥'},
+        {'name': 'Wenfire', 'url': WENFIRE_URL, 'icon': '💰'},
+        {'name': 'Portainer', 'url': PORTAINER_URL, 'icon': '🐳'},
+        {'name': 'TubeArchivist', 'url': TUBEARCHIVIST_URL, 'icon': '📺'},
+        {'name': 'Jellyfin', 'url': f'http://{LEGOLAS_IP}:8096', 'icon': '🎬'},
+        {'name': 'Sonarr', 'url': SONARR_URL, 'icon': '📡'},
+        {'name': 'Radarr', 'url': RADARR_URL, 'icon': '🎥'},
+        {'name': 'Prowlarr', 'url': PROWLARR_URL, 'icon': '🔍'},
+        {'name': 'Open Web UI', 'url': OPEN_WEBUI_URL, 'icon': '🤖'},
+        {'name': 'Ollama', 'url': f'{OLLAMA_HOST}/api/tags', 'icon': '🦙'},
+        {'name': 'Neo4j', 'url': NEO4J_URL, 'icon': '🔗'},
+    ]
+    
+    def check_service(service):
+        try:
+            response = requests.get(service['url'], timeout=3, allow_redirects=True)
+            status = 'up' if response.status_code < 500 else 'down'
+        except:
+            status = 'down'
+        return {**service, 'status': status}
+    
+    # Check services in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        results = list(executor.map(check_service, services))
+    
+    return results
 
 def get_database_activity():
     """Get recent database activity: jackpots, updates, scraper runs, and DB metrics."""
@@ -1051,7 +1138,7 @@ def get_system_events():
     # Add rclone cache status
     try:
         result = subprocess.run(
-            ['/usr/bin/ssh', 'rod@192.168.1.176', 'systemctl', 'is-active', 'rclone-media'],
+            ['/usr/bin/ssh', f'rod@{LEGOLAS_IP}', 'systemctl', 'is-active', 'rclone-media'],
             capture_output=True,
             text=True,
             timeout=3
@@ -1077,7 +1164,7 @@ def get_ai_activity():
     # Get Ollama model list and status
     try:
         result = subprocess.run(
-            ['/usr/bin/curl', '-s', 'http://192.168.1.211:11434/api/tags'],
+            ['/usr/bin/curl', '-s', f'{OLLAMA_HOST}/api/tags'],
             capture_output=True,
             text=True,
             timeout=2
@@ -1112,7 +1199,7 @@ def get_ai_activity():
     # Check for recent Ollama inference (check running processes)
     try:
         result = subprocess.run(
-            ['/usr/bin/ssh', 'rod@192.168.1.211', 'ps aux | grep ollama | grep -v grep | wc -l'],
+            ['/usr/bin/ssh', f'rod@{GANDALF_IP}', 'ps aux | grep ollama | grep -v grep | wc -l'],
             capture_output=True,
             text=True,
             timeout=2
@@ -1133,7 +1220,7 @@ def get_ai_activity():
     try:
         result = subprocess.run(
             ['/usr/bin/curl', '-s', '-u', 'neo4j:password', '-H', 'Accept: application/json', 
-             'http://192.168.1.211:7474/db/data/transaction/commit',
+             f'{NEO4J_URL}/db/data/transaction/commit',
              '-d', '{"statements":[{"statement":"MATCH (n) RETURN count(n) as count"}]}'],
             capture_output=True,
             text=True,
@@ -1168,7 +1255,7 @@ def get_ai_activity():
     # Check Open Web UI status
     try:
         result = subprocess.run(
-            ['/usr/bin/curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://192.168.1.18:8080'],
+            ['/usr/bin/curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', f'http://{ARAGORN_IP}:8080'],
             capture_output=True,
             text=True,
             timeout=2
@@ -1253,41 +1340,609 @@ HTML_TEMPLATE = """
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* ============================================
+           THE ONE DASHBOARD - PREMIUM DESIGN SYSTEM
+           Enhanced with glassmorphism, animations, 
+           and sophisticated visual effects
+           ============================================ */
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --gold: #d4af37; --bronze: #cd7f32; --dark-brown: #2c1810; --parchment: #f4e8d0; }
-        body { font-family: 'Crimson Text', serif; background: linear-gradient(135deg, #1a0f0a 0%, #2c1810 50%, #1a0f0a 100%); color: var(--parchment); min-height: 100vh; position: relative; padding-bottom: 60px; }
-        body::after { content: '💍'; position: fixed; font-size: 400px; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.03; pointer-events: none; filter: blur(5px); }
-        .container-fluid { padding: 20px; position: relative; z-index: 1; }
-        header { text-align: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.1)); border: 2px solid var(--gold); border-radius: 10px; box-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
-        h1 { font-family: 'Cinzel', serif; font-size: 2.5em; font-weight: 900; color: var(--gold); text-shadow: 0 0 20px rgba(212, 175, 55, 0.8); letter-spacing: 4px; margin-bottom: 10px; }
-        .subtitle { font-size: 1.1em; color: var(--bronze); font-style: italic; letter-spacing: 2px; }
-        .nav-tabs { border-bottom: 2px solid var(--gold); margin-bottom: 20px; }
-        .nav-tabs .nav-link { font-family: 'Cinzel', serif; color: var(--bronze); background: linear-gradient(135deg, rgba(44, 24, 16, 0.6), rgba(26, 15, 10, 0.6)); border: 2px solid var(--bronze); border-bottom: none; margin-right: 5px; padding: 10px 15px; font-weight: 700; letter-spacing: 1px; transition: all 0.3s; font-size: 0.85em; }
-        .nav-tabs .nav-link:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(205, 127, 50, 0.2)); color: var(--gold); border-color: var(--gold); }
-        .nav-tabs .nav-link.active { background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.3)); color: var(--gold); border-color: var(--gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
-        .scroll-card { background: linear-gradient(135deg, rgba(244, 232, 208, 0.15), rgba(212, 175, 55, 0.1)); backdrop-filter: blur(10px); border: 3px solid var(--gold); border-radius: 8px; padding: 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); margin-bottom: 20px; position: relative; }
-        .scroll-card::before { content: '⚔'; position: absolute; top: 10px; left: 10px; font-size: 1.5em; color: var(--gold); opacity: 0.3; }
-        .card-title { font-family: 'Cinzel', serif; font-size: 1.3em; font-weight: 700; color: var(--gold); margin-bottom: 15px; text-align: center; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); border-bottom: 2px solid var(--bronze); padding-bottom: 10px; }
-        .chart-container { position: relative; height: 200px; margin-bottom: 15px; }
-        .data-item { padding: 8px 12px; margin: 6px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05)); border-left: 3px solid var(--gold); display: flex; align-items: center; gap: 12px; transition: all 0.3s; cursor: pointer; text-decoration: none; color: inherit; }
-        .data-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.2)); transform: translateX(8px); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
-        .rank-badge { min-width: 30px; height: 30px; background: linear-gradient(135deg, var(--gold), var(--bronze)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 0.9em; font-weight: 900; color: var(--dark-brown); box-shadow: 0 0 15px rgba(212, 175, 55, 0.6); }
-        .trend-text { flex: 1; font-size: 0.95em; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .news-item { padding: 15px; margin: 10px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), rgba(205, 127, 50, 0.03)); border-left: 3px solid var(--gold); transition: all 0.3s; }
-        .news-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), rgba(205, 127, 50, 0.08)); transform: translateX(5px); }
-        .news-title { font-size: 1.1em; font-weight: 600; color: var(--parchment); margin-bottom: 5px; }
-        .news-source { font-size: 0.85em; color: var(--bronze); }
-        .service-link { display: block; padding: 20px; margin: 10px 0; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05)); border: 2px solid var(--gold); border-radius: 8px; text-decoration: none; color: var(--parchment); text-align: center; transition: all 0.3s; }
-        .service-link:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(205, 127, 50, 0.2)); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4); }
-        .service-name { font-family: 'Cinzel', serif; font-size: 1.4em; font-weight: 700; color: var(--gold); margin-bottom: 5px; }
-        .service-url { font-size: 0.9em; color: rgba(244, 232, 208, 0.7); }
-        .jackpot-item { padding: 12px; margin: 8px 0; background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), rgba(205, 127, 50, 0.06)); border-left: 4px solid var(--gold); border-radius: 4px; transition: all 0.3s; }
-        .jackpot-item:hover { background: linear-gradient(90deg, rgba(212, 175, 55, 0.25), rgba(205, 127, 50, 0.15)); transform: translateX(5px); }
-        .jackpot-machine { font-size: 1.05em; font-weight: 600; color: var(--parchment); margin-bottom: 5px; }
-        .jackpot-details { font-size: 0.9em; color: rgba(244, 232, 208, 0.8); display: flex; gap: 15px; }
-        .widget-container { background: rgba(244, 232, 208, 0.05); border: 2px solid var(--gold); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .widget-container iframe { border: none; border-radius: 4px; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; height: 45px; background: linear-gradient(135deg, rgba(44, 24, 16, 0.95), rgba(26, 15, 10, 0.95)); backdrop-filter: blur(10px); border-top: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; gap: 30px; font-family: 'Cinzel', serif; font-size: 0.85em; color: var(--gold); z-index: 100; }
+        
+        :root { 
+            /* Primary Colors - LOTR Theme */
+            --gold: #d4af37; 
+            --gold-light: #f0d875;
+            --gold-dark: #a68928;
+            --bronze: #cd7f32; 
+            --dark-brown: #2c1810; 
+            --parchment: #f4e8d0;
+            
+            /* Accent Colors */
+            --accent-emerald: #00ff9f;
+            --accent-ruby: #ff6b6b;
+            --accent-sapphire: #4dabf7;
+            --accent-amethyst: #8a2be2;
+            --accent-teal: #20c997;
+            
+            /* Background & Surfaces */
+            --bg-primary: #0a0705;
+            --bg-secondary: #1a1210;
+            --bg-card: rgba(30, 20, 15, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            
+            /* Glow Effects */
+            --glow-gold: 0 0 20px rgba(212, 175, 55, 0.4), 0 0 40px rgba(212, 175, 55, 0.2);
+            --glow-accent: 0 0 15px rgba(0, 255, 159, 0.4);
+            
+            /* Shadows */
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Animated Background */
+        body { 
+            font-family: 'Crimson Text', serif; 
+            background: var(--bg-primary);
+            background-image: 
+                radial-gradient(ellipse at 20% 30%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(205, 127, 50, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 255, 159, 0.02) 0%, transparent 60%);
+            color: var(--parchment); 
+            min-height: 100vh; 
+            position: relative; 
+            padding-bottom: 70px;
+            overflow-x: hidden;
+        }
+        
+        /* Animated Ring Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 600px;
+            height: 600px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, transparent 30%, rgba(212, 175, 55, 0.02) 31%, transparent 32%),
+                        radial-gradient(circle, transparent 45%, rgba(212, 175, 55, 0.015) 46%, transparent 47%),
+                        radial-gradient(circle, transparent 60%, rgba(212, 175, 55, 0.01) 61%, transparent 62%);
+            pointer-events: none;
+            animation: pulse-ring 8s ease-in-out infinite;
+            z-index: 0;
+        }
+        
+        body::after { 
+            content: '💍'; 
+            position: fixed; 
+            font-size: 350px; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            opacity: 0.015; 
+            pointer-events: none; 
+            filter: blur(3px) saturate(0.5);
+            animation: float-ring 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+        }
+        
+        @keyframes float-ring {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-48%, -52%) rotate(2deg); }
+            75% { transform: translate(-52%, -48%) rotate(-2deg); }
+        }
+        
+        .container-fluid { 
+            padding: 25px 30px; 
+            position: relative; 
+            z-index: 1; 
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+        
+        /* ====== HERO HEADER ====== */
+        header { 
+            text-align: center; 
+            margin-bottom: 25px; 
+            padding: 35px 40px;
+            background: linear-gradient(135deg, rgba(30, 20, 15, 0.9), rgba(20, 12, 8, 0.95));
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 16px;
+            box-shadow: var(--glow-gold), var(--shadow-card);
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Decorative corner elements */
+        header::before, header::after {
+            content: '⚔';
+            position: absolute;
+            font-size: 2em;
+            color: var(--gold);
+            opacity: 0.25;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+        header::before { top: 15px; left: 20px; }
+        header::after { bottom: 15px; right: 20px; transform: rotate(180deg); }
+        
+        /* Animated border glow */
+        header .header-glow {
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            opacity: 0;
+            border-radius: 18px;
+            animation: border-glow 4s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes border-glow {
+            0%, 100% { opacity: 0; transform: translateX(-100%); }
+            50% { opacity: 0.3; transform: translateX(100%); }
+        }
+        
+        h1 { 
+            font-family: 'Cinzel', serif; 
+            font-size: 3em; 
+            font-weight: 900; 
+            color: var(--gold); 
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5); 
+            letter-spacing: 6px; 
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--bronze));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer-text 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer-text {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+        
+        .subtitle { 
+            font-size: 1.2em; 
+            color: var(--bronze); 
+            font-style: italic; 
+            letter-spacing: 3px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* ====== NAVIGATION TABS ====== */
+        .nav-tabs { 
+            border: none;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(20, 12, 8, 0.8), rgba(30, 20, 15, 0.6));
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav-tabs .nav-link { 
+            font-family: 'Cinzel', serif; 
+            color: rgba(205, 127, 50, 0.9);
+            background: linear-gradient(135deg, rgba(30, 20, 15, 0.8), rgba(20, 12, 8, 0.9));
+            border: 1px solid rgba(205, 127, 50, 0.3);
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-weight: 700; 
+            letter-spacing: 0.5px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.85em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-tabs .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .nav-tabs .nav-link:hover::before { left: 100%; }
+        
+        .nav-tabs .nav-link:hover { 
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(205, 127, 50, 0.1));
+            color: var(--gold);
+            border-color: var(--gold);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.2);
+        }
+        
+        .nav-tabs .nav-link.active { 
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(205, 127, 50, 0.15));
+            color: var(--gold-light);
+            border-color: var(--gold);
+            box-shadow: var(--glow-gold), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* ====== GLASSMORPHIC CARDS ====== */
+        .scroll-card { 
+            background: linear-gradient(135deg, rgba(30, 20, 15, 0.85), rgba(20, 12, 8, 0.9));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-card:hover {
+            border-color: rgba(212, 175, 55, 0.4);
+            box-shadow: var(--shadow-card), 0 0 30px rgba(212, 175, 55, 0.15);
+            transform: translateY(-3px);
+        }
+        
+        /* Decorative corner accent */
+        .scroll-card::before { 
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), transparent);
+            border-radius: 0 0 100% 0;
+        }
+        
+        .scroll-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 80px; height: 80px;
+            background: radial-gradient(circle at 100% 100%, rgba(0, 255, 159, 0.05), transparent 70%);
+        }
+        
+        .card-title { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.4em; 
+            font-weight: 700; 
+            color: var(--gold); 
+            margin-bottom: 20px; 
+            text-align: center;
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+            border-bottom: 1px solid rgba(205, 127, 50, 0.3);
+            padding-bottom: 15px;
+            position: relative;
+        }
+        
+        .card-title::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+        
+        /* ====== DATA ITEMS ====== */
+        .data-item { 
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), rgba(205, 127, 50, 0.03));
+            border-left: 3px solid var(--gold);
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .data-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 3px; height: 100%;
+            background: linear-gradient(180deg, var(--gold), var(--accent-emerald));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .data-item:hover { 
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(205, 127, 50, 0.1));
+            transform: translateX(8px);
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25);
+            border-left-color: var(--accent-emerald);
+        }
+        
+        .data-item:hover::before { opacity: 1; }
+        
+        /* ====== RANK BADGES ====== */
+        .rank-badge { 
+            min-width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--bronze));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 0.9em;
+            font-weight: 900;
+            color: var(--dark-brown);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .rank-badge.rank-1 { background: linear-gradient(135deg, #ffd700, #ffec8b, #daa520); box-shadow: 0 0 25px rgba(255, 215, 0, 0.6); }
+        .rank-badge.rank-2 { background: linear-gradient(135deg, #e8e8e8, #c0c0c0, #a0a0a0); }
+        .rank-badge.rank-3 { background: linear-gradient(135deg, #cd7f32, #b87333, #a0522d); }
+        
+        .trend-text { 
+            flex: 1;
+            font-size: 0.95em;
+            color: var(--parchment);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* ====== NEWS ITEMS ====== */
+        .news-item { 
+            padding: 18px 20px;
+            margin: 12px 0;
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.06), transparent);
+            border-left: 3px solid var(--gold);
+            border-radius: 0 12px 12px 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .news-item:hover { 
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), rgba(205, 127, 50, 0.05));
+            transform: translateX(8px);
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .news-title { 
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--parchment);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        
+        .news-source { 
+            font-size: 0.85em;
+            color: var(--bronze);
+            opacity: 0.8;
+        }
+        
+        /* ====== SERVICE LINKS ====== */
+        .service-link { 
+            display: block;
+            padding: 25px;
+            margin: 12px 0;
+            background: linear-gradient(135deg, rgba(30, 20, 15, 0.8), rgba(20, 12, 8, 0.9));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--parchment);
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .service-link::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(0, 255, 159, 0.05));
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        
+        .service-link:hover { 
+            border-color: var(--gold);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--glow-gold), 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .service-link:hover::before { opacity: 1; }
+        
+        .service-name { 
+            font-family: 'Cinzel', serif;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .service-url { 
+            font-size: 0.9em;
+            color: rgba(244, 232, 208, 0.6);
+            position: relative;
+        }
+        
+        /* ====== JACKPOT ITEMS ====== */
+        .jackpot-item { 
+            padding: 15px 18px;
+            margin: 10px 0;
+            background: linear-gradient(90deg, rgba(0, 255, 159, 0.08), rgba(212, 175, 55, 0.04));
+            border-left: 4px solid var(--accent-emerald);
+            border-radius: 0 10px 10px 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .jackpot-item::after {
+            content: '';
+            position: absolute;
+            right: 15px; top: 50%;
+            transform: translateY(-50%);
+            width: 8px; height: 8px;
+            background: var(--accent-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-emerald);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+            50% { opacity: 0.5; transform: translateY(-50%) scale(1.5); }
+        }
+        
+        .jackpot-item:hover { 
+            background: linear-gradient(90deg, rgba(0, 255, 159, 0.15), rgba(212, 175, 55, 0.08));
+            transform: translateX(8px);
+            box-shadow: 0 5px 25px rgba(0, 255, 159, 0.2);
+        }
+        
+        .jackpot-machine { 
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--parchment);
+            margin-bottom: 6px;
+        }
+        
+        .jackpot-details { 
+            font-size: 0.9em;
+            color: rgba(244, 232, 208, 0.7);
+            display: flex;
+            gap: 20px;
+        }
+        
+        /* ====== WIDGET CONTAINERS ====== */
+        .widget-container { 
+            background: rgba(20, 12, 8, 0.6);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .widget-container iframe { 
+            border: none;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* ====== ENHANCED FOOTER ====== */
+        .footer { 
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 55px;
+            background: linear-gradient(135deg, rgba(20, 12, 8, 0.98), rgba(30, 20, 15, 0.98));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            font-family: 'Cinzel', serif;
+            font-size: 0.9em;
+            color: var(--gold);
+            z-index: 100;
+        }
+        
+        .footer > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer .status-dot {
+            width: 8px; height: 8px;
+            background: var(--accent-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-emerald);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        
+        /* ====== UTILITY CLASSES ====== */
+        .chart-container { 
+            position: relative;
+            height: 220px;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(20, 12, 8, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--gold), var(--bronze)); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold-light); }
+        
+        /* Selection Color */
+        ::selection { background: rgba(212, 175, 55, 0.3); color: var(--parchment); }
+        
+        /* Card Bootstrap Override */
+        .card {
+            background: linear-gradient(135deg, rgba(30, 20, 15, 0.85), rgba(20, 12, 8, 0.9)) !important;
+            border: 1px solid rgba(212, 175, 55, 0.25) !important;
+            border-radius: 12px !important;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), transparent) !important;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+        }
+        
+        /* Button Enhancements */
+        .btn-outline-warning {
+            color: var(--gold) !important;
+            border-color: var(--gold) !important;
+            transition: all 0.3s !important;
+        }
+        
+        .btn-outline-warning:hover {
+            background: rgba(212, 175, 55, 0.2) !important;
+            box-shadow: var(--glow-gold) !important;
+            transform: translateY(-2px) !important;
+        }
+        
+        /* Badge Enhancements */
+        .badge.bg-success { 
+            background: linear-gradient(135deg, #20c997, #0ca678) !important;
+            box-shadow: 0 0 10px rgba(32, 201, 151, 0.4);
+        }
+        
+        .badge.bg-danger { 
+            background: linear-gradient(135deg, #ff6b6b, #e03131) !important;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+        }
+        
+        .badge.bg-warning { 
+            background: linear-gradient(135deg, #ffd43b, #fab005) !important;
+            color: var(--dark-brown) !important;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; letter-spacing: 3px; }
+            .container-fluid { padding: 15px; }
+            .scroll-card { padding: 18px; }
+            .nav-tabs .nav-link { padding: 8px 12px; font-size: 0.8em; }
+            .footer { height: 50px; gap: 20px; font-size: 0.8em; }
+        }
     </style>
 </head>
 <body>
@@ -1307,6 +1962,10 @@ HTML_TEMPLATE = """
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#treasury">💰 Treasures</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#markets">🏛️ Markets</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#news">📰 Tidings</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#kalshi">📈 Kalshi Trading</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#wealth">💎 Wealth</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance">💰 Finance Apps</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#services">🔧 Services</button></li>
         </ul>
         
         <div class="tab-content">
@@ -1439,6 +2098,219 @@ HTML_TEMPLATE = """
                 </div>
             </div>
             
+            <!-- Kalshi Trading Tab -->
+            <div class="tab-pane fade" id="kalshi">
+                <div class="card mb-4" style="background: rgba(0,0,0,0.5); border: 1px solid var(--gold);">
+                    <div class="card-body">
+                        <h2 class="card-title" style="color: var(--gold); font-family: 'Cinzel', serif;">📈 Kalshi Trading Bot</h2>
+                        <!-- Embedded Dashboard -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <iframe src="http://192.168.1.18:8082"
+                                    style="width: 100%; height: 800px; border: 2px solid var(--gold); border-radius: 8px;"
+                                    frameborder="0">
+                                </iframe>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-center">
+                                <a href="http://192.168.1.18:8082" target="_blank" class="btn btn-outline-warning">Open Full Dashboard ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wealth Dashboard Tab -->
+            <div class="tab-pane fade" id="wealth">
+                <div class="card mb-4" style="background: rgba(0,0,0,0.5); border: 1px solid var(--gold);">
+                    <div class="card-body">
+                        <h2 class="card-title" style="color: var(--gold); font-family: 'Cinzel', serif;">💎 Legacy Wealth Dashboard</h2>
+                        <!-- Embedded Dashboard -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <iframe src="''' + WEALTH_DASHBOARD_URL + '''"
+                                    style="width: 100%; height: 800px; border: 2px solid var(--gold); border-radius: 8px;"
+                                    frameborder="0">
+                                </iframe>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-center">
+                                <a href="''' + WEALTH_DASHBOARD_URL + '''" target="_blank" class="btn btn-outline-warning">Open Full Dashboard ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Finance Apps Tab -->
+            <div class="tab-pane fade" id="finance">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2 style="color: var(--gold); font-family: 'Cinzel', serif; text-align: center; margin-bottom: 20px;">
+                            💰 Fellowship Finance Hub
+                        </h2>
+                        <p style="text-align: center; color: rgba(244, 232, 208, 0.8); margin-bottom: 30px;">
+                            Self-hosted financial management suite running on Legolas Docker
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Quick Access Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(32, 201, 151, 0.2), rgba(0,0,0,0.5)); border: 2px solid #20c997;">
+                            <div class="card-body text-center">
+                                <h4 style="color: #20c997;">📈 Ghostfolio</h4>
+                                <p style="font-size: 0.85em; color: rgba(255,255,255,0.8);">Investment Portfolio Tracker</p>
+                                <a href="''' + GHOSTFOLIO_URL + '''" target="_blank" class="btn btn-success btn-sm">Open Dashboard ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(0,0,0,0.5)); border: 2px solid #ff6b6b;">
+                            <div class="card-body text-center">
+                                <h4 style="color: #ff6b6b;">🔥 Firefly III</h4>
+                                <p style="font-size: 0.85em; color: rgba(255,255,255,0.8);">Budget &amp; Expense Management</p>
+                                <a href="''' + FIREFLY_URL + '''" target="_blank" class="btn btn-danger btn-sm">Open Dashboard ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(0,0,0,0.5)); border: 2px solid var(--gold);">
+                            <div class="card-body text-center">
+                                <h4 style="color: var(--gold);">💰 Wenfire</h4>
+                                <p style="font-size: 0.85em; color: rgba(255,255,255,0.8);">FIRE Calculator &amp; Planner</p>
+                                <a href="''' + WENFIRE_URL + '''" target="_blank" class="btn btn-warning btn-sm">Open Dashboard ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Embedded Ghostfolio -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card" style="background: rgba(0,0,0,0.5); border: 1px solid #20c997;">
+                            <div class="card-header" style="background: linear-gradient(90deg, rgba(32, 201, 151, 0.3), transparent); border-bottom: 1px solid #20c997;">
+                                <h5 style="color: #20c997; margin: 0;">📈 Ghostfolio - Investment Portfolio</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <iframe src="''' + GHOSTFOLIO_URL + '''"
+                                    style="width: 100%; height: 600px; border: none; border-radius: 0 0 8px 8px;"
+                                    frameborder="0">
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Embedded Wenfire (FIRE Calculator) -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card" style="background: rgba(0,0,0,0.5); border: 1px solid var(--gold);">
+                            <div class="card-header" style="background: linear-gradient(90deg, rgba(255, 193, 7, 0.3), transparent); border-bottom: 1px solid var(--gold);">
+                                <h5 style="color: var(--gold); margin: 0;">💰 Wenfire - FIRE Calculator</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <iframe src="''' + WENFIRE_URL + '''"
+                                    style="width: 100%; height: 600px; border: none; border-radius: 0 0 8px 8px;"
+                                    frameborder="0">
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docker Management -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card" style="background: rgba(0,0,0,0.5); border: 1px solid #0db7ed;">
+                            <div class="card-header" style="background: linear-gradient(90deg, rgba(13, 183, 237, 0.3), transparent); border-bottom: 1px solid #0db7ed;">
+                                <h5 style="color: #0db7ed; margin: 0;">🐳 Portainer - Docker Management</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <p style="color: rgba(255,255,255,0.8);">Manage all finance app containers</p>
+                                <a href="''' + PORTAINER_URL + '''" target="_blank" class="btn btn-info">Open Portainer ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="background: rgba(0,0,0,0.5); border: 1px solid #e74c3c;">
+                            <div class="card-header" style="background: linear-gradient(90deg, rgba(231, 76, 60, 0.3), transparent); border-bottom: 1px solid #e74c3c;">
+                                <h5 style="color: #e74c3c; margin: 0;">📺 Tube Archivist - Video Archive</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <p style="color: rgba(255,255,255,0.8);">YouTube video archival &amp; management</p>
+                                <a href="''' + TUBEARCHIVIST_URL + '''" target="_blank" class="btn btn-danger">Open Tube Archivist ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div class="tab-pane fade" id="services">
+                <div class="scroll-card">
+                    <h2 class="card-title">🔧 Running Services</h2>
+                    <div class="row" id="services-status">
+                        <!-- Helper function to generate service cards -->
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>🎰 Casino Dashboard</h5>
+                                <p><strong>Port:</strong> 8004</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                                <a href="http://''' + GANDALF_IP + ''':8004" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>💎 Wealth Dashboard</h5>
+                                <p><strong>Port:</strong> 8005</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                                <a href="http://''' + GANDALF_IP + ''':8005" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>📈 Kalshi Bot</h5>
+                                <p><strong>Port:</strong> 8082 (Aragorn)</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                                <a href="http://192.168.1.18:8082" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>🤖 BitNet XL API</h5>
+                                <p><strong>Port:</strong> 8083 (Aragorn)</p>
+                                <p id="bitnet-status"><strong>Status:</strong> <span class="badge bg-warning">Checking...</span></p>
+                                <a href="http://192.168.1.18:8083/health" target="_blank" class="btn btn-sm btn-outline-primary">Health</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>💬 Open Web UI</h5>
+                                <p><strong>Port:</strong> 8080 (Aragorn)</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                                <a href="http://192.168.1.18:8080" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="service-card">
+                                <h5>🎬 Media Stack</h5>
+                                <p><strong>Server:</strong> Legolas</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                                <div class="btn-group" role="group">
+                                    <a href="http://192.168.1.176:9696" target="_blank" class="btn btn-sm btn-outline-primary">Prowlarr</a>
+                                    <a href="http://192.168.1.176:8989" target="_blank" class="btn btn-sm btn-outline-primary">Sonarr</a>
+                                    <a href="http://192.168.1.176:7878" target="_blank" class="btn btn-sm btn-outline-primary">Radarr</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Chronicles Tab (Live Activity Feed) -->
             <div class="tab-pane fade" id="trends">
                 <div class="scroll-card">
@@ -2023,9 +2895,9 @@ HTML_TEMPLATE = """
     </div>
     
     <div class="footer">
-        <div><span>⚔</span> <span>SYSTEM ONLINE</span></div>
+        <div><span class="status-dot"></span> <span>SYSTEM ONLINE</span></div>
         <div style="color: var(--gold); font-family: 'Cinzel', serif;">📜 Analyzing {{ stats.total_jackpots }} Data Points</div>
-        <div><span>Last Updated: {{ update_time }}</span></div>
+        <div><span>⏱️ {{ update_time }}</span></div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2094,6 +2966,34 @@ HTML_TEMPLATE = """
         let timeLeft = 300;
         setInterval(() => { timeLeft--; if (timeLeft <= 0) timeLeft = 300; const m = Math.floor(timeLeft / 60), s = timeLeft % 60; document.title = `⚔ The One Dashboard (${m}:${s.toString().padStart(2, '0')})`; }, 1000);
     </script>
+        <script>
+            async function checkBitNetStatus() {
+                try {
+                    const response = await fetch('http://192.168.1.18:8083/health');
+                    const data = await response.json();
+                    if (data.status === 'healthy') {
+                        document.getElementById('bitnet-status').innerHTML = '<strong>Status:</strong> <span class="badge bg-success">Healthy</span>';
+                    } else {
+                        document.getElementById('bitnet-status').innerHTML = '<strong>Status:</strong> <span class="badge bg-danger">Unhealthy</span>';
+                    }
+                } catch (error) {
+                    document.getElementById('bitnet-status').innerHTML = '<strong>Status:</strong> <span class="badge bg-danger">Offline</span>';
+                }
+            }
+            document.querySelector('[data-bs-target="#services"]')?.addEventListener('shown.bs.tab', checkBitNetStatus);
+        </script>
+        <style>
+            .service-card {
+                padding: 20px;
+                background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(205, 127, 50, 0.05));
+                border: 2px solid rgba(212, 175, 55, 0.3);
+                border-radius: 8px;
+                min-height: 180px;
+            }
+            .service-card h5 { color: var(--gold); margin-bottom: 15px; }
+            .service-card p { color: var(--parchment); margin-bottom: 8px; }
+            .service-card .btn { margin-top: 10px; }
+        </style>
 </body>
 </html>
 """
@@ -2826,6 +3726,73 @@ def api_live_feed():
             'jackpots': jackpots,
             'updated_at': datetime.now().isoformat()
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/service-health')
+def api_service_health():
+    """Return live health status of all Fellowship services."""
+    try:
+        health_data = get_service_health()
+        up_count = sum(1 for s in health_data if s['status'] == 'up')
+        down_count = len(health_data) - up_count
+        return jsonify({
+            'services': health_data,
+            'summary': {'up': up_count, 'down': down_count, 'total': len(health_data)},
+            'checked_at': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/memory/search', methods=['GET', 'POST'])
+def api_memory_search():
+    """Search Mem0 memories. Query param: q (query), user_id (optional), limit (optional)."""
+    try:
+        from memory_client import get_memory_client
+        
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            query = data.get('query', data.get('q', ''))
+            user_id = data.get('user_id', 'default')
+            limit = data.get('limit', 5)
+        else:
+            query = request.args.get('q', '')
+            user_id = request.args.get('user_id', 'default')
+            limit = int(request.args.get('limit', 5))
+        
+        if not query:
+            return jsonify({'error': 'Query parameter "q" is required'}), 400
+        
+        client = get_memory_client()
+        results = client.search(query, user_id=user_id, limit=limit)
+        
+        return jsonify({
+            'query': query,
+            'user_id': user_id,
+            'results': [{'id': r.id, 'text': r.text, 'metadata': r.metadata} for r in results],
+            'count': len(results)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/memory/add', methods=['POST'])
+def api_memory_add():
+    """Add a memory. Body: {text, user_id (optional), metadata (optional)}."""
+    try:
+        from memory_client import get_memory_client
+        
+        data = request.get_json() or {}
+        text = data.get('text', '')
+        user_id = data.get('user_id', 'default')
+        metadata = data.get('metadata', {})
+        
+        if not text:
+            return jsonify({'error': 'Field "text" is required'}), 400
+        
+        client = get_memory_client()
+        success = client.add(text, user_id=user_id, metadata=metadata)
+        
+        return jsonify({'success': success, 'text': text, 'user_id': user_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -5310,7 +6277,7 @@ if __name__ == '__main__':
     print("💰 Treasures: Fed Treasury (Bills, Bonds, Notes)")
     print("🏛️ Markets: NASDAQ & Economic Indicators")
     print("🎰 Treasure Hunter: Casino Jackpots")
-    print("📊 Access at: http://192.168.1.211:8004")
+    print(f"📊 Access at: http://{GANDALF_IP}:8004")
     
     # Data ingestion now handled by systemd services:
     # - coushatta-scraper.timer (every 5 minutes)
