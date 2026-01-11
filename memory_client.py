@@ -71,6 +71,8 @@ class MemoryClient:
         """
         try:
             results = self.memory.search(query, user_id=user_id, limit=limit)
+            # Handle both dict and list responses
+            items = results.get("results", results) if isinstance(results, dict) else results
             return [
                 MemoryResult(
                     id=r.get("id", ""),
@@ -78,7 +80,7 @@ class MemoryClient:
                     metadata=r.get("metadata", {}),
                     score=r.get("score")
                 )
-                for r in results.get("results", results) if isinstance(results, dict) else results
+                for r in items
             ]
         except Exception as e:
             print(f"[MEM0] Search failed: {e}")
@@ -88,13 +90,14 @@ class MemoryClient:
         """Get all memories for a user."""
         try:
             results = self.memory.get_all(user_id=user_id)
+            items = results.get("results", results) if isinstance(results, dict) else results
             return [
                 MemoryResult(
                     id=r.get("id", ""),
                     text=r.get("memory", r.get("text", "")),
                     metadata=r.get("metadata", {})
                 )
-                for r in results.get("results", results) if isinstance(results, dict) else results
+                for r in items
             ]
         except Exception as e:
             print(f"[MEM0] Get all failed: {e}")
