@@ -63,21 +63,19 @@ class JackpotPredictor:
         
         # Query to get jackpots with calculated intervals
         query = """
-        WITH jackpot_intervals AS (
-            SELECT 
-                id,
-                machine_id,
+        WITH jackpot_intervals AS (\n            SELECT \n                id,
+                location_id as machine_id,
                 amount,
-                timestamp,
+                hit_timestamp as timestamp,
                 denomination,
-                game_title,
-                LAG(timestamp) OVER (PARTITION BY machine_id ORDER BY timestamp) as prev_timestamp,
-                EXTRACT(EPOCH FROM (timestamp - LAG(timestamp) OVER (PARTITION BY machine_id ORDER BY timestamp)))/60 as interval_minutes,
-                EXTRACT(HOUR FROM timestamp) as hour_of_day,
-                EXTRACT(DOW FROM timestamp) as day_of_week
+                game_family as game_title,
+                LAG(hit_timestamp) OVER (PARTITION BY location_id ORDER BY hit_timestamp) as prev_timestamp,
+                EXTRACT(EPOCH FROM (hit_timestamp - LAG(hit_timestamp) OVER (PARTITION BY location_id ORDER BY hit_timestamp)))/60 as interval_minutes,
+                hour_of_day,
+                day_of_week
             FROM jackpots
-            WHERE timestamp > NOW() - INTERVAL '180 days'
-            ORDER BY timestamp DESC
+            WHERE hit_timestamp > NOW() - INTERVAL '180 days'
+            ORDER BY hit_timestamp DESC
         )
         SELECT * FROM jackpot_intervals
         WHERE interval_minutes IS NOT NULL
@@ -126,7 +124,7 @@ class JackpotPredictor:
         # Game family (first word)
         df['game_family'] = df['game_title'].fillna('Unknown').str.split().str[0]
         game_encoder = LabelEncoder()
-        features_df['game category_encoded'] = game_encoder.fit_transform(df['game_family'])
+        features_df['game_family_encoded'] = game_encoder.fit_transform(df['game_family'])
         self.label_encoders['game_family'] = game_encoder
         
         # 5-6. Time features
@@ -217,7 +215,7 @@ class JackpotPredictor:
         train_score = self.timing_model.score(X_train_scaled, y_timing_train)
         test_score = self.timing_model.score(X_test_scaled, y_timing_test)
         
-       y_pred = self.timing_model.predict(X_test_scaled)
+        y_pred = self.timing_model.predict(X_test_scaled)
         mae = np.mean(np.abs(y_pred - y_timing_test))
         
         print(f"   ✅ Timing Model:")

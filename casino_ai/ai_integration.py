@@ -126,7 +126,7 @@ class CasinoAIEngine:
                 "day_of_week": now.weekday(),
                 "total_jackpots_today": sum(1 for jp in jackpots if jp['date_won'].date() == now.date()),
                 "price_point": float(denomination.replace('$', '').replace(',', '')),
-                "recent_trend": "stable"  # Could calculate from intervals
+                "recent_trend": 0  # Could calculate from intervals (0=stable, -1=decreasing, 1=increasing)
             }
             
             return machine_data

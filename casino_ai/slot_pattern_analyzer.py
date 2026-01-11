@@ -17,9 +17,17 @@ class SlotPatternAnalyzer:
     Detects hot/cold machines, patterns, anomalies, and optimal timing.
     """
     
-    def __init__(self, llm_endpoint="http://192.168.1.176:11434/api/generate"):
-        self.endpoint = llm_endpoint
-        self.model = "functiongemma:2b"
+    def __init__(self, ollama_host: str = "http://192.168.1.176:11434"):
+        """
+        Initialize the analyzer.
+        
+        Args:
+            ollama_host: Ollama API endpoint (Aragorn server)
+        """
+        self.ollama_host = ollama_host
+        self.endpoint = f"{self.ollama_host}/api/generate" # Construct the full endpoint
+        self.model = "functiongemma:270m"  # Smaller, faster model for real-time analysis
+        self.available = self._check_availability()
         
         # Define analysis functions for FunctionGemma
         self.functions = {

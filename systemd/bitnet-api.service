@@ -1,0 +1,18 @@
+[Unit]
+Description=BitNet XL API Server
+After=network.target
+
+[Service]
+Type=simple
+User=rod
+WorkingDirectory=/Users/rod/mlx-bitnet
+Environment="PATH=/Volumes/Phoenix/rod/Library/Python/3.9/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/Volumes/Phoenix/rod/Library/Python/3.9/lib/python/site-packages"
+ExecStart=/Volumes/Phoenix/rod/Library/Python/3.9/bin/uvicorn bitnet_api_server:app --host 0.0.0.0 --port 8083
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

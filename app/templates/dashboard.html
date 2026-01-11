@@ -757,6 +757,32 @@
                         </div>
                     </div>
 
+                    <!-- 🤖 AI INTELLIGENCE SECTION -->
+                    <div class="col-12 mb-4">
+                        <div class="scroll-card"
+                            style="background: linear-gradient(135deg, rgba(0, 255, 159, 0.1), rgba(0, 0, 0, 0.4)); border-color: #00ff9f;">
+                            <h2 class="card-title"
+                                style="color: #00ff9f; font-size: 1.1em; border-bottom-color: #00ff9f;">
+                                🤖 AI Intel: Hot Machines Right Now
+                                <button class="btn btn-sm" onclick="refreshHotMachines()"
+                                    style="float: right; background: linear-gradient(135deg, rgba(0, 255, 159, 0.3), rgba(0, 255, 159, 0.1)); border: 1px solid #00ff9f; color: #00ff9f; font-family: 'Cinzel', serif; font-size: 0.8em; padding: 4px 12px;">
+                                    ↻ Refresh
+                                </button>
+                            </h2>
+                            <div
+                                style="font-size: 0.8em; color: rgba(244, 232, 208, 0.6); margin-bottom: 15px; text-align: center;">
+                                ML-predicted machines with highest win probability • Updates every 2 minutes
+                            </div>
+                            <div id="hot-machines-container">
+                                <div style="text-align: center; color: rgba(244, 232, 208, 0.5); padding: 20px;">
+                                    <span class="spinner-border spinner-border-sm" role="status"
+                                        aria-hidden="true"></span>
+                                    Loading AI predictions...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Column 1: Essentials -->
                     <div class="col-md-4">
                         <div class="scroll-card">
@@ -1256,6 +1282,109 @@
                     });
             }
         });
+
+        // 🤖 AI Hot Machines Integration
+        async function refreshHotMachines() {
+            const container = document.getElementById('hot-machines-container');
+
+            try {
+                const response = await fetch('http://localhost:8000/ai/hot-machines?limit=10');
+                const data = await response.json();
+
+                if (data.count === 0 || !data.machines || data.machines.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: rgba(244, 232, 208, 0.6); padding: 30px;">
+                            <div style="font-size: 3em; margin-bottom: 10px;">❄️</div>
+                            <div style="font-size: 1.1em; margin-bottom: 5px;">No Hot Machines Detected</div>
+                            <div style="font-size: 0.85em; color: rgba(244, 232, 208, 0.4);">
+                                This is normal – most machines are cold most of the time.<br>
+                                Check back later or play your favorites!
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Display machines in a grid
+                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">';
+
+                data.machines.forEach((machine, index) => {
+                    const score = Math.round(machine.combined_score * 100);
+                    const emoji = index === 0 ? '🔥' : index === 1 ? '⭐' : '📊';
+                    const borderColor = score >= 70 ? '#ff4444' : score >= 55 ? '#00ff9f' : '#ffc107';
+
+                    html += `
+                        <div style="
+                            background: linear-gradient(135deg, rgba(0, 255, 159, 0.1), rgba(0, 255, 159, 0.02));
+                            border-left: 4px solid ${borderColor};
+                            padding: 15px;
+                            border-radius: 8px;
+                            transition: all 0.3s;
+                            cursor: pointer;
+                        " onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 5px 20px rgba(0, 255, 159, 0.3)';"
+                           onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <div style="color: #00ff9f; font-weight: 700; font-size: 0.95em; font-family: 'Cinzel', serif; margin-bottom: 5px;">
+                                        ${emoji} ${machine.machine_id.substring(0, 35)}${machine.machine_id.length > 35 ? '...' : ''}
+                                    </div>
+                                    <div style="font-size: 0.75em; color: rgba(244, 232, 208, 0.6);">
+                                        Rank #${index + 1}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.8em; color: var(--gold); font-family: 'Cinzel', serif; font-weight: 900;">
+                                        ${score}
+                                    </div>
+                                    <div style="font-size: 0.7em; color: rgba(244, 232, 208, 0.5);">Score</div>
+                                </div>
+                            </div>
+                            
+                            <div style="font-size: 0.85em; color: rgba(244, 232, 208, 0.8); margin-bottom: 8px;">
+                                ${machine.final_recommendation || 'Analyzing...'}
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75em;">
+                                <div>
+                                    <span style="color: rgba(244, 232, 208, 0.5);">Status:</span>
+                                    <span style="color: ${machine.ml_classification === 'HOT' ? '#ff4444' : '#ffc107'}; font-weight: 700;">
+                                        ${machine.ml_classification || 'UNKNOWN'}
+                                    </span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="color: rgba(244, 232, 208, 0.5);">ETA:</span>
+                                    <span style="color: var(--bronze); font-weight: 700;">
+                                        ~${machine.ml_predicted_minutes ? Math.round(machine.ml_predicted_minutes / 60) : '?'} hrs
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading hot machines:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; color: #ff6b6b; padding: 20px;">
+                        <div style="font-size: 2em; margin-bottom: 10px;">⚠️</div>
+                        <div>AI System Unavailable</div>
+                        <div style="font-size: 0.8em; color: rgba(244, 232, 208, 0.5); margin-top: 5px;">
+                            ${error.message || 'Connection error'}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load hot machines on page load
+        refreshHotMachines();
+
+        // Auto-refresh every 2 minutes
+        setInterval(refreshHotMachines, 120000);
 
         // Charts removed in new layout
         setTimeout(() => location.reload(), 300000);

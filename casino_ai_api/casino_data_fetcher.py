@@ -91,11 +91,11 @@ def fetch_jackpot_history(machine_name: Optional[str] = None, days: int = 30) ->
             machine_name AS machine_id,
             machine_name,
             amount,
-            date_won,
-            location,
+            hit_timestamp as date_won,
+            location_id as location,
             scraped_at
         FROM jackpots
-        WHERE date_won >= %s
+        WHERE hit_timestamp >= %s
     """
     
     params = [datetime.now() - timedelta(days=days)]
@@ -104,7 +104,7 @@ def fetch_jackpot_history(machine_name: Optional[str] = None, days: int = 30) ->
         query += " AND machine_name = %s"
         params.append(machine_name)
     
-    query += " ORDER BY date_won DESC LIMIT 100"
+    query += " ORDER BY hit_timestamp DESC LIMIT 100"
     
     cursor.execute(query, params)
     
